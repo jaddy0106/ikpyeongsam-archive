@@ -3,8 +3,8 @@ import { Search, LayoutGrid, List, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SongCard from "@/components/SongCard";
-import { useGoogleSheets } from "@/hooks/useGoogleSheets";
-import { getSearchTerms } from "@/lib/artistAliases";
+import { useGoogleSheets, useAliasRules } from "@/hooks/useGoogleSheets";
+import { getSearchTermsFromRules } from "@/lib/artistAliases";
 
 type ViewMode = "grid" | "list";
 type SortBy = "rating-desc" | "rating-asc" | "date-desc" | "date-asc";
@@ -15,12 +15,13 @@ const Archive = () => {
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
 
   const { data: songs = [], isLoading, error } = useGoogleSheets();
+  const { data: aliasRules = [] } = useAliasRules();
 
   const filtered = useMemo(() => {
     let result = [...songs];
 
     if (search.trim()) {
-      const terms = getSearchTerms(search.toLowerCase());
+      const terms = getSearchTermsFromRules(search.toLowerCase(), aliasRules);
       result = result.filter((s) => {
         const title = s.title.toLowerCase();
         const artist = s.artist.toLowerCase();

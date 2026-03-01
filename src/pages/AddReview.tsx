@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useGoogleSheets } from "@/hooks/useGoogleSheets";
-import { getSearchTerms } from "@/lib/artistAliases";
+import { useGoogleSheets, useAliasRules } from "@/hooks/useGoogleSheets";
+import { getSearchTermsFromRules } from "@/lib/artistAliases";
 
 interface SelectedSong {
   title: string;
@@ -30,6 +30,7 @@ const AddReview = () => {
   const { toast } = useToast();
   const { user, loading, signInWithGoogle } = useAuth();
   const { data: sheetSongs = [] } = useGoogleSheets();
+  const { data: aliasRules = [] } = useAliasRules();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -40,7 +41,7 @@ const AddReview = () => {
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (q.length < 1) return [];
-    const terms = getSearchTerms(q);
+    const terms = getSearchTermsFromRules(q, aliasRules);
     return sheetSongs
       .filter((s) => {
         const title = s.title.toLowerCase();
@@ -48,7 +49,7 @@ const AddReview = () => {
         return terms.some((t) => title.includes(t) || artist.includes(t));
       })
       .slice(0, 10);
-  }, [searchQuery, sheetSongs]);
+  }, [searchQuery, sheetSongs, aliasRules]);
 
   if (loading) {
     return (

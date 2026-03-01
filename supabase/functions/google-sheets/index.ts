@@ -16,7 +16,7 @@ async function getAccessToken(clientEmail: string, privateKey: string): Promise<
   const now = Math.floor(Date.now() / 1000);
   const claim = base64url(JSON.stringify({
     iss: clientEmail,
-    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600,
     iat: now,
@@ -62,6 +62,25 @@ async function getAccessToken(clientEmail: string, privateKey: string): Promise<
   return tokenData.access_token;
 }
 
+async function fetchSheet(accessToken: string, range: string) {
+  const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(sheetsUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(JSON.stringify(data.error));
+  const rows = data.values || [];
+  const headers = rows[0] || [];
+  const records = rows.slice(1).map((row: string[]) => {
+    const obj: Record<string, string> = {};
+    headers.forEach((h: string, i: number) => {
+      obj[h] = row[i] || '';
+    });
+    return obj;
+  });
+  return { headers, records };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -83,35 +102,20 @@ Deno.serve(async (req) => {
 
     const accessToken = await getAccessToken(clientEmail, privateKey);
 
-    const url = new URL(req.url);
-    const range = url.searchParams.get('range') || `${SHEET_NAME}!A1:V10000`;
-
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
-    const res = await fetch(sheetsUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-      return new Response(
-        JSON.stringify({ success: false, error: data.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const rows = data.values || [];
-    const headers = rows[0] || [];
-    const records = rows.slice(1).map((row: string[]) => {
-      const obj: Record<string, string> = {};
-      headers.forEach((h: string, i: number) => {
-        obj[h] = row[i] || '';
-      });
-      return obj;
-    });
+    // Fetch both SONGS and Rules tabs in parallel
+    const [songsData, rulesData] = await Promise.all([
+      fetchSheet(accessToken, `${SHEET_NAME}!A1:V10000`),
+      fetchSheet(accessToken, `Rules!A1:B1000`).catch(() => ({ headers: [], records: [] })),
+    ]);
 
     return new Response(
-      JSON.stringify({ success: true, headers, records, totalRows: records.length }),
+      JSON.stringify({
+        success: true,
+        headers: songsData.headers,
+        records: songsData.records,
+        totalRows: songsData.records.length,
+        rules: rulesData.records,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
