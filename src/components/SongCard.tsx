@@ -47,11 +47,11 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-medium text-foreground text-sm truncate">{song.title}</h3>
-              <span className="text-[10px] text-muted-foreground flex-shrink-0">{formattedDate}</span>
+            <h3 className="font-medium text-foreground text-sm truncate">{song.title}</h3>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+              <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">{formattedDate}</span>
             </div>
-            <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
           </div>
           {song.isOfficial && hasRating && (
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -99,11 +99,11 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
           )}
         </div>
         <div className="p-3">
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-medium text-foreground text-sm truncate">{song.title}</h3>
-            <span className="text-[10px] text-muted-foreground flex-shrink-0">{formattedDate}</span>
+          <h3 className="font-medium text-foreground text-sm truncate">{song.title}</h3>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+            <span className="text-[10px] text-muted-foreground flex-shrink-0 ml-2">{formattedDate}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{song.artist}</p>
         </div>
       </div>
     </Link>
