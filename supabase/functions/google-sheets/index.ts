@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
       if (body.action === 'setup-reviews-sheet') {
         const sheetName = 'UserReview';
         await createSheet(accessToken, sheetName);
-        const headers = ['작성일시', '작성자', '작성자ID', '곡정보', '곡ID', '평점', '한줄평'];
+        const headers = ['작성일시', '작성자', '작성자ID', '곡정보', '곡ID', '평점', '한줄평', '좋아요', 'coverUrl'];
         const dummy: string[][] = [headers];
         const names = ['음악팬1', '멜로디러버', '비트마스터', '힙합키드', '발라드퀸', '록스타', '인디보이', '팝매니아', '재즈걸', 'EDM중독'];
         const songs = [
@@ -211,15 +211,16 @@ Deno.serve(async (req) => {
           ['세븐틴 - Super', 'super-seventeen'],
         ];
         const ratings = ['4.5', '3.0', '5.0', '4.0', '3.5', '4.5', '2.5', '5.0', '4.0', '3.5'];
+        const likes = ['12', '5', '23', '8', '15', '42', '3', '31', '19', '7'];
         const comments = [
           '중독성 최고!', '비트가 좋아요', '올해 최고의 곡', '안무가 인상적', '계속 듣게 됨',
           '전설적인 곡', '카리스마 넘침', '감동적인 가사', '분위기가 너무 좋아', '에너지 넘치는 곡',
         ];
         for (let i = 0; i < 10; i++) {
           const date = `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')} ${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`;
-          dummy.push([date, names[i], `user_${String(i + 1).padStart(3, '0')}`, songs[i][0], songs[i][1], ratings[i], comments[i]]);
+          dummy.push([date, names[i], `user_${String(i + 1).padStart(3, '0')}`, songs[i][0], songs[i][1], ratings[i], comments[i], likes[i], '']);
         }
-        await writeSheet(accessToken, `${sheetName}!A1:G11`, dummy);
+        await writeSheet(accessToken, `${sheetName}!A1:I11`, dummy);
         return new Response(
           JSON.stringify({ success: true, message: `'${sheetName}' 시트 생성 완료` }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -228,7 +229,7 @@ Deno.serve(async (req) => {
 
       // 리뷰 저장 (UserReview 시트에 append)
       if (body.action === 'append-review') {
-        const result = await appendSheet(accessToken, `UserReview!A:G`, body.values as string[][]);
+        const result = await appendSheet(accessToken, `UserReview!A:I`, body.values as string[][]);
         return new Response(
           JSON.stringify({ success: true, result }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -238,7 +239,7 @@ Deno.serve(async (req) => {
       // 특정 사용자의 리뷰 조회
       if (body.action === 'fetch-user-reviews') {
         const userId = body.userId as string;
-        const { records } = await fetchSheet(accessToken, `UserReview!A1:G10000`);
+        const { records } = await fetchSheet(accessToken, `UserReview!A1:I10000`);
         const userReviews = records.filter((r: Record<string, string>) => r['작성자ID'] === userId);
         return new Response(
           JSON.stringify({ success: true, reviews: userReviews }),

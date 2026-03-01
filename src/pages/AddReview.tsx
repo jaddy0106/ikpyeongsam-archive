@@ -235,10 +235,12 @@ const AddReview = () => {
         ? `${selectedSong.title}-${selectedSong.artist}`.toLowerCase().replace(/\s+/g, '-')
         : sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.id || "";
 
+      const coverUrl = selectedSong.coverUrl || sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.coverUrl || "";
+
       await supabase.functions.invoke("google-sheets", {
         body: {
           action: "append-review",
-          values: [[now, displayName, user!.id, songInfo, songId, rating.toString(), reviewText]],
+          values: [[now, displayName, user!.id, songInfo, songId, rating.toString(), reviewText, "0", coverUrl]],
         },
       });
 
