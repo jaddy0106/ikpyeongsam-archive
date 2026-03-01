@@ -6,10 +6,10 @@ interface RatingBadgeProps {
 }
 
 const getRatingColor = (rating: number) => {
-  if (rating >= 9) return "bg-primary/15 text-primary border-primary/30";
-  if (rating >= 7) return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-  if (rating >= 5) return "bg-amber-500/10 text-amber-600 border-amber-500/20";
-  return "bg-red-500/10 text-red-600 border-red-500/20";
+  if (rating >= 4.5) return "bg-primary/15 text-primary border-primary/30";
+  if (rating >= 3.5) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+  if (rating >= 2.5) return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+  return "bg-red-500/10 text-red-400 border-red-500/20";
 };
 
 const sizeClasses = {

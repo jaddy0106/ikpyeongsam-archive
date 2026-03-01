@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Search, Star, X } from "lucide-react";
+import { Search, Star, X, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+
+// Mock: login state
+const isLoggedIn = false;
 
 // Mock search results simulating music archive search
 const mockSearchResults = [
@@ -21,6 +24,17 @@ interface SelectedSong {
   album: string;
 }
 
+const LoginPrompt = () => (
+  <div className="container flex flex-col items-center justify-center min-h-[60vh] text-center">
+    <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+      <User className="h-8 w-8 text-muted-foreground" />
+    </div>
+    <h1 className="text-lg font-bold text-foreground mb-1">로그인이 필요합니다</h1>
+    <p className="text-sm text-muted-foreground mb-5">리뷰를 등록하려면 Google 계정으로 로그인해주세요</p>
+    <Button className="font-medium">Google 로그인</Button>
+  </div>
+);
+
 const AddReview = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +43,10 @@ const AddReview = () => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+
+  if (!isLoggedIn) {
+    return <LoginPrompt />;
+  }
 
   const filteredResults = searchQuery.trim().length >= 1
     ? mockSearchResults.filter(
@@ -90,7 +108,7 @@ const AddReview = () => {
                 className="pl-10"
               />
               {showResults && filteredResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-background shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-popover shadow-lg max-h-48 overflow-y-auto">
                   {filteredResults.map((song) => (
                     <button
                       key={song.id}
@@ -105,7 +123,7 @@ const AddReview = () => {
                 </div>
               )}
               {showResults && searchQuery.trim().length >= 1 && filteredResults.length === 0 && (
-                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-background shadow-lg p-4 text-center">
+                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-popover shadow-lg p-4 text-center">
                   <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
                 </div>
               )}
@@ -114,11 +132,11 @@ const AddReview = () => {
           <p className="text-xs text-muted-foreground">Apple Music, Spotify, YouTube Music 등에서 검색됩니다</p>
         </div>
 
-        {/* Star Rating */}
+        {/* Star Rating - 5점 만점, 0.5 단위 */}
         <div className="space-y-2">
-          <Label>평점 * <span className="text-muted-foreground font-normal">(0.5~10.0)</span></Label>
+          <Label>평점 * <span className="text-muted-foreground font-normal">(0.5~5.0)</span></Label>
           <div className="flex items-center gap-0.5">
-            {Array.from({ length: 20 }, (_, i) => {
+            {Array.from({ length: 10 }, (_, i) => {
               const value = (i + 1) * 0.5;
               return (
                 <button
@@ -130,7 +148,7 @@ const AddReview = () => {
                   onClick={() => setRating(value)}
                 >
                   <Star
-                    className={`h-5 w-5 transition-colors ${
+                    className={`h-6 w-6 transition-colors ${
                       value <= activeRating
                         ? "text-primary fill-primary"
                         : "text-muted-foreground/20"

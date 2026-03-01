@@ -3,7 +3,7 @@ export interface Song {
   title: string;
   artist: string;
   album?: string;
-  rating: number; // 0-10
+  rating: number; // 0-5 (0.5 단위)
   reviewer: string; // '익평삼' or user name
   reviewText?: string;
   genre?: string;
