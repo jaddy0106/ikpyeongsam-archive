@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
+import { Search, LayoutGrid, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SongCard from "@/components/SongCard";
 import { mockSongs, mockUserReviews } from "@/lib/mockData";
@@ -48,27 +47,22 @@ const Archive = () => {
   }, [allSongs, search, sortBy, filterSource]);
 
   return (
-    <div className="container py-10 md:py-16">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">음악 아카이브</h1>
-        <p className="text-muted-foreground mt-2">평가된 모든 곡들을 한눈에 확인하세요</p>
-      </div>
+    <div className="container py-8">
+      <h1 className="text-xl font-bold text-foreground mb-6">음악 아카이브</h1>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="곡명, 아티스트, 장르 검색..."
+            placeholder="곡명, 아티스트 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-card border-border/50"
+            className="pl-10"
           />
         </div>
         <div className="flex gap-2">
           <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
-            <SelectTrigger className="w-[130px] bg-card border-border/50">
-              <SlidersHorizontal className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+            <SelectTrigger className="w-[110px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +72,7 @@ const Archive = () => {
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-            <SelectTrigger className="w-[130px] bg-card border-border/50">
+            <SelectTrigger className="w-[110px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -88,16 +82,16 @@ const Archive = () => {
               <SelectItem value="rating-asc">낮은 평점</SelectItem>
             </SelectContent>
           </Select>
-          <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
+          <div className="hidden sm:flex border border-border rounded-md overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2.5 transition-colors ${viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={`p-2 transition-colors ${viewMode === "grid" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2.5 transition-colors ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={`p-2 transition-colors ${viewMode === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List className="h-4 w-4" />
             </button>
@@ -105,11 +99,10 @@ const Archive = () => {
         </div>
       </div>
 
-      {/* Results */}
-      <p className="text-sm text-muted-foreground mb-4">{filtered.length}곡</p>
+      <p className="text-xs text-muted-foreground mb-4">{filtered.length}곡</p>
 
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {filtered.map((song) => (
             <SongCard key={song.id} song={song} variant="grid" />
           ))}
@@ -123,8 +116,8 @@ const Archive = () => {
       )}
 
       {filtered.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-muted-foreground">검색 결과가 없습니다</p>
+        <div className="text-center py-16">
+          <p className="text-muted-foreground text-sm">검색 결과가 없습니다</p>
         </div>
       )}
     </div>

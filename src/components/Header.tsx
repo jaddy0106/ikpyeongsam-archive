@@ -12,30 +12,25 @@ const navItems = [
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const isLoggedIn = false; // placeholder
+  const isLoggedIn = false;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 group-hover:glow-gold-sm transition-shadow">
-            <Music className="h-5 w-5 text-primary" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">
-            <span className="text-gradient-gold">익평삼</span>
-          </span>
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+      <div className="container flex h-14 items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 group">
+          <Music className="h-5 w-5 text-primary" />
+          <span className="text-lg font-bold text-foreground">익평삼</span>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 location.pathname === item.path
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {item.label}
@@ -46,19 +41,18 @@ const Header = () => {
         <div className="hidden md:flex items-center gap-2">
           {isLoggedIn ? (
             <Link to="/mypage">
-              <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
+              <Button variant="ghost" size="sm" className="gap-2">
                 <User className="h-4 w-4" />
                 마이페이지
               </Button>
             </Link>
           ) : (
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+            <Button size="sm" className="font-medium">
               Google 로그인
             </Button>
           )}
         </div>
 
-        {/* Mobile toggle */}
         <button
           className="md:hidden p-2 text-muted-foreground"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -67,26 +61,25 @@ const Header = () => {
         </button>
       </div>
 
-      {/* Mobile Nav */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl animate-fade-in">
-          <nav className="container py-4 flex flex-col gap-1">
+        <div className="md:hidden border-t border-border bg-background">
+          <nav className="container py-3 flex flex-col gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                   location.pathname === item.path
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {item.label}
               </Link>
             ))}
-            <div className="pt-2 px-4">
-              <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+            <div className="pt-2 px-3">
+              <Button size="sm" className="w-full font-medium">
                 Google 로그인
               </Button>
             </div>

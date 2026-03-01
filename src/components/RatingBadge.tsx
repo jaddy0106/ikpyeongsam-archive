@@ -6,16 +6,16 @@ interface RatingBadgeProps {
 }
 
 const getRatingColor = (rating: number) => {
-  if (rating >= 9) return "bg-primary/20 text-primary border-primary/40";
-  if (rating >= 7) return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-  if (rating >= 5) return "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
-  return "bg-red-500/15 text-red-400 border-red-500/30";
+  if (rating >= 9) return "bg-primary/15 text-primary border-primary/30";
+  if (rating >= 7) return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+  if (rating >= 5) return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+  return "bg-red-500/10 text-red-600 border-red-500/20";
 };
 
 const sizeClasses = {
-  sm: "text-xs px-2 py-0.5 min-w-[2rem]",
-  md: "text-sm px-2.5 py-1 min-w-[2.5rem]",
-  lg: "text-lg px-3 py-1.5 min-w-[3rem] font-bold",
+  sm: "text-xs px-1.5 py-0.5 min-w-[2rem]",
+  md: "text-sm px-2 py-0.5 min-w-[2.5rem]",
+  lg: "text-base px-2.5 py-1 min-w-[3rem] font-bold",
 };
 
 const RatingBadge = ({ rating, size = "md" }: RatingBadgeProps) => {
