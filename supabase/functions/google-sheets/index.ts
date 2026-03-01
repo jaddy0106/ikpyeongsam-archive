@@ -70,7 +70,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const serviceAccount = JSON.parse(saKey);
+    console.log('Secret first 20 chars:', saKey.substring(0, 20));
+    console.log('Secret length:', saKey.length);
+    // Try to clean the value if it's wrapped in quotes
+    let cleanKey = saKey.trim();
+    if (cleanKey.startsWith('"') && cleanKey.endsWith('"')) {
+      cleanKey = cleanKey.slice(1, -1);
+    }
+    // Handle escaped newlines
+    cleanKey = cleanKey.replace(/\\n/g, '\n');
+    const serviceAccount = JSON.parse(cleanKey);
     const accessToken = await getAccessToken(serviceAccount);
 
     const url = new URL(req.url);
