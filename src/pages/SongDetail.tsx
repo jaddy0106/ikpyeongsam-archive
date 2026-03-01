@@ -145,14 +145,15 @@ const SongDetail = () => {
       {/* YouTube 링크 - 앨범커버 하단 */}
       {song.youtubeUrl && (
         <div className="mb-8">
-          <a
-            href={song.youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => {
+              const url = song.youtubeUrl!.startsWith("http") ? song.youtubeUrl! : `https://${song.youtubeUrl}`;
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
             className="text-sm text-primary hover:underline"
           >
             ▶ YouTube에서 듣기
-          </a>
+          </button>
         </div>
       )}
       {!song.youtubeUrl && <div className="mb-8" />}
