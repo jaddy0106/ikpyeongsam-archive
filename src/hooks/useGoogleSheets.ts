@@ -25,6 +25,11 @@ interface SheetRecord {
   IPyoutube: string;
 }
 
+export interface AliasRule {
+  keyword: string;
+  aliases: string[];
+}
+
 function mapRecordToSong(record: SheetRecord): Song {
   const rate1 = parseFloat(record["1rate"]) || 0;
   const rate2 = parseFloat(record["2rate"]) || 0;
@@ -51,17 +56,49 @@ function mapRecordToSong(record: SheetRecord): Song {
   };
 }
 
-export function useGoogleSheets() {
+function parseRules(records: { keyword?: string; aliases?: string }[]): AliasRule[] {
+  return records
+    .filter((r) => r.keyword && r.aliases)
+    .map((r) => ({
+      keyword: r.keyword!.toLowerCase().trim(),
+      aliases: r.aliases!.split(",").map((a) => a.toLowerCase().trim()).filter(Boolean),
+    }));
+}
+
+interface SheetsResult {
+  songs: Song[];
+  rules: AliasRule[];
+}
+
+function useSheetsData() {
   return useQuery({
-    queryKey: ["google-sheets-songs"],
-    queryFn: async (): Promise<Song[]> => {
+    queryKey: ["google-sheets-all"],
+    queryFn: async (): Promise<SheetsResult> => {
       const { data, error } = await supabase.functions.invoke("google-sheets");
 
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to fetch sheets data");
 
-      return (data.records as SheetRecord[]).map(mapRecordToSong);
+      const songs = (data.records as SheetRecord[]).map(mapRecordToSong);
+      const rules = parseRules(data.rules || []);
+      return { songs, rules };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+}
+
+export function useGoogleSheets() {
+  const query = useSheetsData();
+  return {
+    ...query,
+    data: query.data?.songs,
+  };
+}
+
+export function useAliasRules() {
+  const query = useSheetsData();
+  return {
+    ...query,
+    data: query.data?.rules,
+  };
 }
