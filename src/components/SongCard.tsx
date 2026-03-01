@@ -50,6 +50,11 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
     );
   }
 
+  // 익평삼 평점: memberRatings 평균 (SongDetail과 동일 로직)
+  const officialRating = song.memberRatings && song.memberRatings.length > 0
+    ? song.memberRatings.reduce((sum, r) => sum + r.rating, 0) / song.memberRatings.length
+    : song.rating;
+
   return (
     <Link to={`/song/${song.id}`}>
       <div className="group overflow-hidden rounded-lg border border-border bg-card transition-colors hover:bg-secondary/30">
@@ -66,7 +71,7 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
           {song.isOfficial && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-primary/90 backdrop-blur-sm px-1.5 py-0.5">
               <span className="text-[10px] font-semibold text-white">익평삼</span>
-              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.rating))}>{song.rating.toFixed(1)}</span>
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(officialRating))}>{officialRating.toFixed(1)}</span>
             </div>
           )}
 
