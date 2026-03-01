@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Index from "./pages/Index";
 import Archive from "./pages/Archive";
 import AddReview from "./pages/AddReview";
+import SongDetail from "./pages/SongDetail";
 import MyPage from "./pages/MyPage";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/archive" element={<Archive />} />
           <Route path="/add-review" element={<AddReview />} />
+          <Route path="/song/:id" element={<SongDetail />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

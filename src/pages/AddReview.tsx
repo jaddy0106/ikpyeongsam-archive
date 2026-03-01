@@ -1,146 +1,167 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Search, Star, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
+// Mock search results simulating music archive search
+const mockSearchResults = [
+  { id: "s1", title: "Supernova", artist: "aespa", album: "Armageddon" },
+  { id: "s2", title: "Super Shy", artist: "NewJeans", album: "Get Up" },
+  { id: "s3", title: "Super", artist: "SEVENTEEN", album: "FML" },
+  { id: "s4", title: "Sugar", artist: "Maroon 5", album: "V" },
+  { id: "s5", title: "Supernatural", artist: "NewJeans", album: "Supernatural" },
+];
+
+interface SelectedSong {
+  title: string;
+  artist: string;
+  album: string;
+}
+
 const AddReview = () => {
   const { toast } = useToast();
-  const [form, setForm] = useState({
-    title: "",
-    artist: "",
-    album: "",
-    genre: "",
-    rating: 0,
-    reviewText: "",
-    youtubeUrl: "",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+
+  const filteredResults = searchQuery.trim().length >= 1
+    ? mockSearchResults.filter(
+        (s) =>
+          s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.artist.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const handleSelectSong = (song: typeof mockSearchResults[0]) => {
+    setSelectedSong({ title: song.title, artist: song.artist, album: song.album });
+    setSearchQuery("");
+    setShowResults(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.artist || form.rating === 0) {
-      toast({ title: "필수 항목을 입력해주세요", description: "곡명, 아티스트, 평점은 필수입니다.", variant: "destructive" });
+    if (!selectedSong || rating === 0) {
+      toast({ title: "필수 항목을 입력해주세요", description: "곡 선택과 평점은 필수입니다.", variant: "destructive" });
       return;
     }
-    toast({ title: "리뷰가 등록되었습니다!", description: `${form.artist} - ${form.title}` });
-    setForm({ title: "", artist: "", album: "", genre: "", rating: 0, reviewText: "", youtubeUrl: "" });
+    toast({ title: "리뷰가 등록되었습니다!", description: `${selectedSong.artist} - ${selectedSong.title}` });
+    setSelectedSong(null);
+    setRating(0);
+    setReviewText("");
   };
 
-  const activeRating = hoverRating || form.rating;
+  const activeRating = hoverRating || rating;
 
   return (
-    <div className="container max-w-2xl py-10 md:py-16">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">리뷰 등록</h1>
-        <p className="text-muted-foreground mt-2">내가 들은 곡을 평가하고 공유하세요</p>
-      </div>
+    <div className="container max-w-lg py-8">
+      <h1 className="text-xl font-bold text-foreground mb-6">리뷰 등록</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">곡명 *</Label>
-            <Input
-              id="title"
-              placeholder="곡 제목"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="bg-card border-border/50"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="artist">아티스트 *</Label>
-            <Input
-              id="artist"
-              placeholder="아티스트명"
-              value={form.artist}
-              onChange={(e) => setForm({ ...form, artist: e.target.value })}
-              className="bg-card border-border/50"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="album">앨범</Label>
-            <Input
-              id="album"
-              placeholder="앨범명 (선택)"
-              value={form.album}
-              onChange={(e) => setForm({ ...form, album: e.target.value })}
-              className="bg-card border-border/50"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="genre">장르</Label>
-            <Input
-              id="genre"
-              placeholder="예: K-Pop, Rock, R&B"
-              value={form.genre}
-              onChange={(e) => setForm({ ...form, genre: e.target.value })}
-              className="bg-card border-border/50"
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Song Search */}
+        <div className="space-y-2">
+          <Label>곡 검색 *</Label>
+          {selectedSong ? (
+            <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div>
+                <p className="font-medium text-foreground text-sm">{selectedSong.title}</p>
+                <p className="text-xs text-muted-foreground">{selectedSong.artist} · {selectedSong.album}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedSong(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="곡명 또는 아티스트로 검색..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowResults(true);
+                }}
+                onFocus={() => setShowResults(true)}
+                className="pl-10"
+              />
+              {showResults && filteredResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-background shadow-lg max-h-48 overflow-y-auto">
+                  {filteredResults.map((song) => (
+                    <button
+                      key={song.id}
+                      type="button"
+                      onClick={() => handleSelectSong(song)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-secondary/50 transition-colors border-b border-border last:border-0"
+                    >
+                      <p className="text-sm font-medium text-foreground">{song.title}</p>
+                      <p className="text-xs text-muted-foreground">{song.artist} · {song.album}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showResults && searchQuery.trim().length >= 1 && filteredResults.length === 0 && (
+                <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-background shadow-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Apple Music, Spotify, YouTube Music 등에서 검색됩니다</p>
         </div>
 
         {/* Star Rating */}
         <div className="space-y-2">
           <Label>평점 * <span className="text-muted-foreground font-normal">(0.5~10.0)</span></Label>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {Array.from({ length: 20 }, (_, i) => {
               const value = (i + 1) * 0.5;
-              const isHalf = i % 2 === 0;
               return (
                 <button
                   key={i}
                   type="button"
-                  className="relative p-0.5"
+                  className="p-0.5"
                   onMouseEnter={() => setHoverRating(value)}
                   onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setForm({ ...form, rating: value })}
+                  onClick={() => setRating(value)}
                 >
                   <Star
                     className={`h-5 w-5 transition-colors ${
                       value <= activeRating
                         ? "text-primary fill-primary"
-                        : "text-muted-foreground/30"
+                        : "text-muted-foreground/20"
                     }`}
                   />
                 </button>
               );
             })}
-            <span className="ml-3 text-lg font-bold text-foreground tabular-nums min-w-[3rem]">
+            <span className="ml-2 text-base font-bold text-foreground tabular-nums min-w-[2.5rem]">
               {activeRating > 0 ? activeRating.toFixed(1) : "—"}
             </span>
           </div>
         </div>
 
+        {/* Review Text */}
         <div className="space-y-2">
-          <Label htmlFor="review">리뷰</Label>
+          <Label htmlFor="review">한줄평 <span className="text-muted-foreground font-normal">({reviewText.length}/200)</span></Label>
           <Textarea
             id="review"
-            placeholder="이 곡에 대한 감상을 자유롭게 작성해주세요..."
-            value={form.reviewText}
-            onChange={(e) => setForm({ ...form, reviewText: e.target.value })}
-            rows={4}
-            className="bg-card border-border/50 resize-none"
+            placeholder="이 곡에 대한 한줄평을 남겨주세요..."
+            value={reviewText}
+            onChange={(e) => {
+              if (e.target.value.length <= 200) setReviewText(e.target.value);
+            }}
+            rows={3}
+            maxLength={200}
+            className="resize-none"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="youtube">YouTube 링크</Label>
-          <Input
-            id="youtube"
-            placeholder="https://youtube.com/watch?v=..."
-            value={form.youtubeUrl}
-            onChange={(e) => setForm({ ...form, youtubeUrl: e.target.value })}
-            className="bg-card border-border/50"
-          />
-        </div>
-
-        <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+        <Button type="submit" className="w-full font-medium">
           리뷰 등록하기
         </Button>
       </form>
