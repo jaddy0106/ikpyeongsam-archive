@@ -83,8 +83,7 @@ const SongDetail = () => {
 
         {/* 개별 출연자 평점 */}
         {song.memberRatings &&
-        <div className="space-y-3 border-t border-border pt-4">
-            <span className="text-xs text-muted-foreground font-medium">개별 평점</span>
+        <div className="space-y-3 pt-4">
             {song.memberRatings.map((mr) =>
           <div key={mr.memberId} className="flex items-center gap-3">
               <img
