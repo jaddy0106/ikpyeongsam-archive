@@ -1,12 +1,19 @@
 import { Link } from "react-router-dom";
 import { Song } from "@/lib/types";
-import RatingBadge from "./RatingBadge";
-import { Music, Star } from "lucide-react";
+import { Music, Star, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SongCardProps {
   song: Song;
   variant?: "grid" | "list";
 }
+
+const getRatingColor = (rating: number) => {
+  if (rating >= 4.5) return "text-primary";
+  if (rating >= 3.5) return "text-emerald-400";
+  if (rating >= 2.5) return "text-amber-400";
+  return "text-red-400";
+};
 
 const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
   if (variant === "list") {
@@ -26,8 +33,18 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
             <h3 className="font-medium text-foreground text-sm truncate">{song.title}</h3>
             <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
           </div>
-          {song.isOfficial && <Star className="h-3.5 w-3.5 text-primary fill-primary flex-shrink-0" />}
-          <RatingBadge rating={song.rating} size="sm" />
+          {song.isOfficial && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Star className="h-3 w-3 text-primary fill-primary" />
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.rating))}>{song.rating.toFixed(1)}</span>
+            </div>
+          )}
+          {song.subscriberRating != null && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Users className="h-3 w-3 text-muted-foreground" />
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.subscriberRating))}>{song.subscriberRating.toFixed(1)}</span>
+            </div>
+          )}
         </div>
       </Link>
     );
@@ -44,13 +61,20 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
               <Music className="h-10 w-10 text-muted-foreground" />
             </div>
           )}
-          <div className="absolute top-2 right-2">
-            <RatingBadge rating={song.rating} size="md" />
-          </div>
+
+          {/* 익평삼 평점 - 좌측 하단 */}
           {song.isOfficial && (
-            <div className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-background/90 px-1.5 py-0.5">
-              <Star className="h-3 w-3 text-primary fill-primary" />
-              <span className="text-[10px] font-semibold text-primary">익평삼</span>
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-primary/90 backdrop-blur-sm px-1.5 py-0.5">
+              <span className="text-[10px] font-semibold text-white">익평삼</span>
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.rating))}>{song.rating.toFixed(1)}</span>
+            </div>
+          )}
+
+          {/* 구독자 평점 - 우측 하단 */}
+          {song.subscriberRating != null && (
+            <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-muted/90 backdrop-blur-sm px-1.5 py-0.5">
+              <Users className="h-3 w-3 text-muted-foreground" />
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.subscriberRating))}>{song.subscriberRating.toFixed(1)}</span>
             </div>
           )}
         </div>

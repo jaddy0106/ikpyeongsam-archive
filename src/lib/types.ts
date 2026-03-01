@@ -18,6 +18,7 @@ export interface Song {
   coverUrl?: string;
   createdAt: string;
   isOfficial: boolean; // true = 익평삼 review, false = user review
+  subscriberRating?: number; // 구독자 평균 평점
 }
 
 export interface User {
