@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search, Star, X, User, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-
-// Mock search results simulating music archive search
-const mockSearchResults = [
-  { id: "s1", title: "Supernova", artist: "aespa", album: "Armageddon" },
-  { id: "s2", title: "Super Shy", artist: "NewJeans", album: "Get Up" },
-  { id: "s3", title: "Super", artist: "SEVENTEEN", album: "FML" },
-  { id: "s4", title: "Sugar", artist: "Maroon 5", album: "V" },
-  { id: "s5", title: "Supernatural", artist: "NewJeans", album: "Supernatural" },
-];
+import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 
 interface SelectedSong {
   title: string;
@@ -36,12 +28,25 @@ const LoginPrompt = ({ onLogin }: { onLogin: () => void }) => (
 const AddReview = () => {
   const { toast } = useToast();
   const { user, loading, signInWithGoogle } = useAuth();
+  const { data: sheetSongs = [] } = useGoogleSheets();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 1) return [];
+    return sheetSongs
+      .filter(
+        (s) =>
+          s.title.toLowerCase().includes(q) ||
+          s.artist.toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [searchQuery, sheetSongs]);
 
   if (loading) {
     return (
@@ -55,16 +60,8 @@ const AddReview = () => {
     return <LoginPrompt onLogin={signInWithGoogle} />;
   }
 
-  const filteredResults = searchQuery.trim().length >= 1
-    ? mockSearchResults.filter(
-        (s) =>
-          s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.artist.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
-
-  const handleSelectSong = (song: typeof mockSearchResults[0]) => {
-    setSelectedSong({ title: song.title, artist: song.artist, album: song.album });
+  const handleSelectSong = (song: { title: string; artist: string; album?: string }) => {
+    setSelectedSong({ title: song.title, artist: song.artist, album: song.album || "" });
     setSearchQuery("");
     setShowResults(false);
   };
@@ -114,9 +111,9 @@ const AddReview = () => {
                 onFocus={() => setShowResults(true)}
                 className="pl-10"
               />
-              {showResults && filteredResults.length > 0 && (
+              {showResults && searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-popover shadow-lg max-h-48 overflow-y-auto">
-                  {filteredResults.map((song) => (
+                  {searchResults.map((song) => (
                     <button
                       key={song.id}
                       type="button"
@@ -129,7 +126,7 @@ const AddReview = () => {
                   ))}
                 </div>
               )}
-              {showResults && searchQuery.trim().length >= 1 && filteredResults.length === 0 && (
+              {showResults && searchQuery.trim().length >= 1 && searchResults.length === 0 && (
                 <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-popover shadow-lg p-4 text-center">
                   <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
                 </div>
