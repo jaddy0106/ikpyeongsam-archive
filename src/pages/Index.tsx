@@ -69,8 +69,8 @@ const Index = () => {
     <div className="min-h-screen">
       {/* Recent Videos */}
       <section className="container py-8">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-foreground">최근 영상</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-foreground">최근 영상</h2>
           <a
             href="https://www.youtube.com/@anonymouscritics"
             target="_blank"
@@ -113,8 +113,8 @@ const Index = () => {
 
       {/* Recent Songs */}
       <section className="container py-8 border-t border-border">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-foreground">최근 평가</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-foreground">최근 평가</h2>
           <Link
             to="/archive"
             className="text-xs text-primary hover:underline flex items-center gap-1"
