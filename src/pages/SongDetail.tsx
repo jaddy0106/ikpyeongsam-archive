@@ -21,9 +21,9 @@ const SongDetail = () => {
 
   // Mock subscriber reviews for this song
   const subscriberReviews = [
-    { id: "sr1", user: "음악팬123", rating: 8.0, text: "정말 좋은 곡이에요! 반복 재생 중" },
-    { id: "sr2", user: "멜로디러버", rating: 7.5, text: "프로듀싱이 인상적입니다" },
-    { id: "sr3", user: "사운드헌터", rating: 9.0, text: "올해 최고의 곡 중 하나" },
+    { id: "sr1", user: "음악팬123", rating: 4.0, text: "정말 좋은 곡이에요! 반복 재생 중" },
+    { id: "sr2", user: "멜로디러버", rating: 3.8, text: "프로듀싱이 인상적입니다" },
+    { id: "sr3", user: "사운드헌터", rating: 4.5, text: "올해 최고의 곡 중 하나" },
   ];
 
   const avgSubscriberRating = subscriberReviews.reduce((sum, r) => sum + r.rating, 0) / subscriberReviews.length;
