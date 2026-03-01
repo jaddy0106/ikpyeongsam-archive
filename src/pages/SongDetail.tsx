@@ -353,13 +353,13 @@ const SongDetail = () => {
                       <div className="flex items-center justify-between mt-1.5">
                         <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
                         <button
-                          onClick={() => !isOwnReview && user && toggleLike(review.작성자ID)}
-                          disabled={isOwnReview || !user || likingInProgress.has(review.작성자ID)}
-                          className={cn(
-                            "flex items-center gap-1 transition-colors",
-                            isOwnReview || !user
-                              ? "text-muted-foreground/40 cursor-default"
-                              : isLiked
+                          onClick={() => user && toggleLike(review.작성자ID)}
+                           disabled={!user || likingInProgress.has(review.작성자ID)}
+                           className={cn(
+                             "flex items-center gap-1 transition-colors",
+                             !user
+                               ? "text-muted-foreground/40 cursor-default"
+                               : isLiked
                                 ? "text-red-500 hover:text-red-400"
                                 : "text-muted-foreground hover:text-red-400"
                           )}
