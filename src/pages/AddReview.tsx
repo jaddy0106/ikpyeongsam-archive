@@ -185,6 +185,7 @@ const AddReview = () => {
             "", "", "", "", // rates & avg
             "", "", "", // comments
             "", // IPyoutube
+            itunes.genre || "", // Ganre
           ]],
         },
       });
