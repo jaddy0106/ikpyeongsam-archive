@@ -1,8 +1,19 @@
 import { useState, useEffect } from "react";
-import { User, Loader2, Star, Heart } from "lucide-react";
+import { User, Loader2, Star, Heart, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface UserReview {
   작성일시: string;
@@ -18,10 +29,19 @@ interface UserReview {
 
 const MyPage = () => {
   const { user, profile, loading, signInWithGoogle, signOut } = useAuth();
+  const { toast } = useToast();
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  useEffect(() => {
+  // 수정 관련 state
+  const [editReview, setEditReview] = useState<UserReview | null>(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editHoverRating, setEditHoverRating] = useState(0);
+  const [editComment, setEditComment] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const fetchReviews = () => {
     if (!user) return;
     setReviewsLoading(true);
     supabase.functions
@@ -32,7 +52,44 @@ const MyPage = () => {
         if (!error && data?.reviews) setReviews(data.reviews);
       })
       .finally(() => setReviewsLoading(false));
+  };
+
+  useEffect(() => {
+    fetchReviews();
   }, [user]);
+
+  const openEditDialog = (review: UserReview) => {
+    setEditReview(review);
+    setEditRating(parseFloat(review.평점) || 0);
+    setEditComment(review.한줄평 || "");
+    setShowConfirm(false);
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!editReview || !user || editRating === 0) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase.functions.invoke("google-sheets", {
+        body: {
+          action: "update-review",
+          songId: editReview.곡ID,
+          userId: user.id,
+          rating: editRating.toString(),
+          comment: editComment,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "리뷰가 수정되었습니다", description: "좋아요 수가 초기화되었습니다." });
+      setEditReview(null);
+      setShowConfirm(false);
+      fetchReviews();
+    } catch (err) {
+      console.error("Update review error:", err);
+      toast({ title: "수정 실패", description: "잠시 후 다시 시도해주세요", variant: "destructive" });
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -54,6 +111,8 @@ const MyPage = () => {
       </div>
     );
   }
+
+  const activeEditRating = editHoverRating || editRating;
 
   return (
     <div className="container py-8">
@@ -92,11 +151,7 @@ const MyPage = () => {
             return (
               <div key={i} className="rounded-lg border border-border p-3 flex gap-3">
                 {review.coverUrl ? (
-                  <img
-                    src={review.coverUrl}
-                    alt=""
-                    className="h-14 w-14 rounded-md object-cover flex-shrink-0"
-                  />
+                  <img src={review.coverUrl} alt="" className="h-14 w-14 rounded-md object-cover flex-shrink-0" />
                 ) : (
                   <div className="h-14 w-14 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
                     <Star className="h-5 w-5 text-muted-foreground/40" />
@@ -105,9 +160,18 @@ const MyPage = () => {
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium text-sm text-foreground truncate">{review.곡정보}</p>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Star className="h-3.5 w-3.5 text-primary fill-primary" />
-                      <span className="text-sm font-bold text-foreground">{rating.toFixed(1)}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3.5 w-3.5 text-primary fill-primary" />
+                        <span className="text-sm font-bold text-foreground">{rating.toFixed(1)}</span>
+                      </div>
+                      <button
+                        onClick={() => openEditDialog(review)}
+                        className="p-1 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                        title="리뷰 수정"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                   {review.한줄평 && (
@@ -126,6 +190,81 @@ const MyPage = () => {
           })}
         </div>
       )}
+
+      {/* 수정 다이얼로그 */}
+      <Dialog open={!!editReview} onOpenChange={(open) => { if (!open) { setEditReview(null); setShowConfirm(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>리뷰 수정</DialogTitle>
+            <DialogDescription>{editReview?.곡정보}</DialogDescription>
+          </DialogHeader>
+
+          {!showConfirm ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>평점 * <span className="text-muted-foreground font-normal">(0.5~5.0)</span></Label>
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const value = (i + 1) * 0.5;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className="p-0.5"
+                        onMouseEnter={() => setEditHoverRating(value)}
+                        onMouseLeave={() => setEditHoverRating(0)}
+                        onClick={() => setEditRating(value)}
+                      >
+                        <Star
+                          className={`h-5 w-5 transition-colors ${
+                            value <= activeEditRating ? "text-primary fill-primary" : "text-muted-foreground/20"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                  <span className="ml-2 text-sm font-bold text-foreground tabular-nums">
+                    {activeEditRating > 0 ? activeEditRating.toFixed(1) : "—"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>한줄평 <span className="text-muted-foreground font-normal">({editComment.length}/200)</span></Label>
+                <Textarea
+                  value={editComment}
+                  onChange={(e) => { if (e.target.value.length <= 200) setEditComment(e.target.value); }}
+                  rows={3}
+                  maxLength={200}
+                  className="resize-none"
+                  placeholder="한줄평을 입력하세요..."
+                />
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditReview(null)}>취소</Button>
+                <Button onClick={() => setShowConfirm(true)} disabled={editRating === 0}>수정하기</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 space-y-1">
+                <p className="text-sm font-medium text-destructive">⚠️ 좋아요 수가 초기화됩니다</p>
+                <p className="text-xs text-muted-foreground">
+                  리뷰를 수정하면 기존에 받은 좋아요 수({editReview?.좋아요 || "0"}개)가 0으로 초기화됩니다. 계속하시겠습니까?
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowConfirm(false)}>돌아가기</Button>
+                <Button variant="destructive" onClick={handleConfirmEdit} disabled={updating}>
+                  {updating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  수정 확인
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

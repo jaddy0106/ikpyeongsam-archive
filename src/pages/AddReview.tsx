@@ -55,6 +55,7 @@ const AddReview = () => {
   const [itunesResults, setItunesResults] = useState<ITunesResult[]>([]);
   const [itunesLoading, setItunesLoading] = useState(false);
   const [addingSong, setAddingSong] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // 디바운스된 iTunes 검색
   const [itunesTimer, setItunesTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -220,6 +221,7 @@ const AddReview = () => {
     }
   };
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSong || rating === 0) {
@@ -227,14 +229,29 @@ const AddReview = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
-      const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
       const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "익명";
       const songInfo = `${selectedSong.artist} - ${selectedSong.title}`;
       const songId = selectedSong.isNew
         ? `${selectedSong.title}-${selectedSong.artist}`.toLowerCase().replace(/\s+/g, '-')
         : sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.id || "";
 
+      // 중복 리뷰 체크
+      const { data: dupData } = await supabase.functions.invoke("google-sheets", {
+        body: { action: "check-duplicate", songId, userId: user!.id },
+      });
+      if (dupData?.exists) {
+        toast({
+          title: "이미 리뷰를 작성한 곡입니다",
+          description: "동일한 곡에는 하나의 리뷰만 작성할 수 있습니다. 마이페이지에서 수정해주세요.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
       const coverUrl = selectedSong.coverUrl || sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.coverUrl || "";
 
       await supabase.functions.invoke("google-sheets", {
@@ -251,6 +268,8 @@ const AddReview = () => {
     } catch (err) {
       console.error("Review submit error:", err);
       toast({ title: "리뷰 등록 실패", description: "잠시 후 다시 시도해주세요", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -428,7 +447,8 @@ const AddReview = () => {
           />
         </div>
 
-        <Button type="submit" className="w-full font-medium">
+        <Button type="submit" className="w-full font-medium" disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
           리뷰 등록하기
         </Button>
       </form>
