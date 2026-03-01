@@ -8,8 +8,8 @@ interface SongCardProps {
   variant?: "grid" | "list";
 }
 
-const getRatingColor = (rating: number) => {
-  if (rating >= 4.5) return "text-primary";
+const getRatingColor = (rating: number, onPrimaryBg = false) => {
+  if (rating >= 4.5) return onPrimaryBg ? "text-white" : "text-primary";
   if (rating >= 3.5) return "text-emerald-400";
   if (rating >= 2.5) return "text-amber-400";
   return "text-red-400";
@@ -71,7 +71,7 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
           {song.isOfficial && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-primary/90 backdrop-blur-sm px-1.5 py-0.5">
               <span className="text-[10px] font-semibold text-white">익평삼</span>
-              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(officialRating))}>{officialRating.toFixed(1)}</span>
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(officialRating, true))}>{officialRating.toFixed(1)}</span>
             </div>
           )}
 
