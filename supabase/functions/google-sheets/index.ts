@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(clientEmail, privateKey);
 
     const url = new URL(req.url);
-    const range = url.searchParams.get('range') || `${SHEET_NAME}!A1:V100`;
+    const range = url.searchParams.get('range') || `${SHEET_NAME}!A1:V10000`;
 
     const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
     const res = await fetch(sheetsUrl, {
