@@ -295,6 +295,20 @@ Deno.serve(async (req) => {
         );
       }
 
+      // 최근 리뷰 조회 (최신순, limit개)
+      if (body.action === 'fetch-recent-reviews') {
+        const limit = (body.limit as number) || 5;
+        const { records } = await fetchSheet(accessToken, `UserReview!A1:I10000`);
+        // 최신순 정렬
+        const sorted = records.sort((a: Record<string, string>, b: Record<string, string>) => {
+          return new Date(b['작성일시']).getTime() - new Date(a['작성일시']).getTime();
+        });
+        return new Response(
+          JSON.stringify({ success: true, reviews: sorted.slice(0, limit) }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // 특정 곡의 리뷰 조회
       if (body.action === 'fetch-song-reviews') {
         const songId = body.songId as string;
