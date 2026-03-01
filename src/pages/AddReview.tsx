@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { getSearchTerms } from "@/lib/artistAliases";
 
 interface SelectedSong {
   title: string;
@@ -39,12 +40,13 @@ const AddReview = () => {
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (q.length < 1) return [];
+    const terms = getSearchTerms(q);
     return sheetSongs
-      .filter(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.artist.toLowerCase().includes(q)
-      )
+      .filter((s) => {
+        const title = s.title.toLowerCase();
+        const artist = s.artist.toLowerCase();
+        return terms.some((t) => title.includes(t) || artist.includes(t));
+      })
       .slice(0, 10);
   }, [searchQuery, sheetSongs]);
 

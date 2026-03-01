@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SongCard from "@/components/SongCard";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { getSearchTerms } from "@/lib/artistAliases";
 
 type ViewMode = "grid" | "list";
 type SortBy = "rating-desc" | "rating-asc" | "date-desc" | "date-asc";
@@ -19,13 +20,13 @@ const Archive = () => {
     let result = [...songs];
 
     if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.artist.toLowerCase().includes(q) ||
-          s.genre?.toLowerCase().includes(q)
-      );
+      const terms = getSearchTerms(search.toLowerCase());
+      result = result.filter((s) => {
+        const title = s.title.toLowerCase();
+        const artist = s.artist.toLowerCase();
+        const genre = s.genre?.toLowerCase() || "";
+        return terms.some((t) => title.includes(t) || artist.includes(t) || genre.includes(t));
+      });
     }
 
     result.sort((a, b) => {
