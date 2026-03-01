@@ -149,12 +149,11 @@ const SongDetail = () => {
             href={(() => {
               const raw = song.youtubeUrl!;
               const url = raw.startsWith("http") ? raw : `https://${raw}`;
-              // Convert youtu.be short links to full youtube.com links
               const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
               if (match) return `https://www.youtube.com/watch?v=${match[1]}`;
               return url;
             })()}
-            target="_blank"
+            target="_top"
             rel="noopener noreferrer"
             className="text-sm text-primary hover:underline"
           >
