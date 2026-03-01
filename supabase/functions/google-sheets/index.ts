@@ -6,11 +6,11 @@ const corsHeaders = {
 const SPREADSHEET_ID = '1o36ECPpjG7eHETZ6afHClCRBt3K14xgmDviRLo2lAfs';
 const SHEET_NAME = 'SONGS';
 
-async function getAccessToken(serviceAccount: any): Promise<string> {
+async function getAccessToken(clientEmail: string, privateKey: string): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const claim = btoa(JSON.stringify({
-    iss: serviceAccount.client_email,
+    iss: clientEmail,
     scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600,
@@ -20,9 +20,10 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
   const signInput = `${header}.${claim}`;
 
   // Import the private key
-  const pemContent = serviceAccount.private_key
+  const pemContent = privateKey
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\\n/g, '')
     .replace(/\n/g, '');
   const binaryDer = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
 
@@ -62,25 +63,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const saKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
-    if (!saKey) {
+    const clientEmail = Deno.env.get('GOOGLE_SA_CLIENT_EMAIL');
+    const privateKey = Deno.env.get('GOOGLE_SA_PRIVATE_KEY');
+    
+    if (!clientEmail || !privateKey) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Service account key not configured' }),
+        JSON.stringify({ success: false, error: 'Google SA credentials not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Secret first 20 chars:', saKey.substring(0, 20));
-    console.log('Secret length:', saKey.length);
-    // Try to clean the value if it's wrapped in quotes
-    let cleanKey = saKey.trim();
-    if (cleanKey.startsWith('"') && cleanKey.endsWith('"')) {
-      cleanKey = cleanKey.slice(1, -1);
-    }
-    // Handle escaped newlines
-    cleanKey = cleanKey.replace(/\\n/g, '\n');
-    const serviceAccount = JSON.parse(cleanKey);
-    const accessToken = await getAccessToken(serviceAccount);
+    console.log('Client email:', clientEmail);
+    console.log('Private key length:', privateKey.length);
+
+    const accessToken = await getAccessToken(clientEmail, privateKey);
 
     const url = new URL(req.url);
     const range = url.searchParams.get('range') || `${SHEET_NAME}!A1:V100`;
