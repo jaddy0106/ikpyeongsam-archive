@@ -114,9 +114,13 @@ Deno.serve(async (req) => {
 
     const accessToken = await getAccessToken(clientEmail, privateKey);
 
-    // POST: write data to a sheet
+    // POST: check for write action
     if (req.method === 'POST') {
-      const body = await req.json();
+      let body: Record<string, unknown> = {};
+      try {
+        const text = await req.text();
+        if (text) body = JSON.parse(text);
+      } catch { /* empty body = read request */ }
       if (body.action === 'write-rules') {
         const result = await writeSheet(accessToken, body.range, body.values);
         return new Response(
