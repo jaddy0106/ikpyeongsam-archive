@@ -80,9 +80,6 @@ const SongDetail = () => {
           <RatingBadge rating={avgMemberRating} size="lg" />
         </div>
 
-        {song.reviewText
-
-        }
 
         {/* 개별 출연자 평점 */}
         {song.memberRatings &&
@@ -90,14 +87,10 @@ const SongDetail = () => {
             <span className="text-xs text-muted-foreground font-medium">개별 평점</span>
             {song.memberRatings.map((mr) =>
           <div key={mr.memberId} className="flex items-center gap-3">
-                <img
+              <img
               src={memberAvatars[mr.memberId]}
               alt={memberInfo[mr.memberId as keyof typeof memberInfo].name}
-              className="h-8 w-8 rounded-full object-cover bg-secondary" />
-
-                <span className="text-sm font-medium text-foreground w-6">
-                  {memberInfo[mr.memberId as keyof typeof memberInfo].name}
-                </span>
+              className="h-12 w-12 rounded-full object-cover bg-secondary" />
                 <RatingBadge rating={mr.rating} size="sm" />
                 {mr.comment &&
             <span className="text-sm text-muted-foreground truncate">{mr.comment}</span>
