@@ -1,27 +1,22 @@
 import { useState, useMemo } from "react";
-import { Search, LayoutGrid, List } from "lucide-react";
+import { Search, LayoutGrid, List, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SongCard from "@/components/SongCard";
-import { mockSongs, mockUserReviews } from "@/lib/mockData";
+import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 
 type ViewMode = "grid" | "list";
 type SortBy = "rating-desc" | "rating-asc" | "date-desc" | "date-asc";
-type FilterSource = "all" | "official" | "user";
 
 const Archive = () => {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortBy>("date-desc");
-  const [filterSource, setFilterSource] = useState<FilterSource>("all");
 
-  const allSongs = useMemo(() => [...mockSongs, ...mockUserReviews], []);
+  const { data: songs = [], isLoading, error } = useGoogleSheets();
 
   const filtered = useMemo(() => {
-    let result = allSongs;
-
-    if (filterSource === "official") result = result.filter((s) => s.isOfficial);
-    if (filterSource === "user") result = result.filter((s) => !s.isOfficial);
+    let result = [...songs];
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -44,7 +39,7 @@ const Archive = () => {
     });
 
     return result;
-  }, [allSongs, search, sortBy, filterSource]);
+  }, [songs, search, sortBy]);
 
   return (
     <div className="container py-8">
@@ -61,16 +56,6 @@ const Archive = () => {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
-            <SelectTrigger className="w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체</SelectItem>
-              <SelectItem value="official">익평삼</SelectItem>
-              <SelectItem value="user">구독자</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
             <SelectTrigger className="w-[110px]">
               <SelectValue />
@@ -99,26 +84,42 @@ const Archive = () => {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mb-4">{filtered.length}곡</p>
-
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {filtered.map((song) => (
-            <SongCard key={song.id} song={song} variant="grid" />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {filtered.map((song) => (
-            <SongCard key={song.id} song={song} variant="list" />
-          ))}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {error && (
         <div className="text-center py-16">
-          <p className="text-muted-foreground text-sm">검색 결과가 없습니다</p>
+          <p className="text-destructive text-sm">데이터를 불러오는 데 실패했습니다</p>
         </div>
+      )}
+
+      {!isLoading && !error && (
+        <>
+          <p className="text-xs text-muted-foreground mb-4">{filtered.length}곡</p>
+
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {filtered.map((song) => (
+                <SongCard key={song.id} song={song} variant="grid" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filtered.map((song) => (
+                <SongCard key={song.id} song={song} variant="list" />
+              ))}
+            </div>
+          )}
+
+          {filtered.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-sm">검색 결과가 없습니다</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
