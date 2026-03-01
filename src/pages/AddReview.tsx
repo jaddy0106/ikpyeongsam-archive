@@ -220,16 +220,36 @@ const AddReview = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSong || rating === 0) {
       toast({ title: "필수 항목을 입력해주세요", description: "곡 선택과 평점은 필수입니다.", variant: "destructive" });
       return;
     }
-    toast({ title: "리뷰가 등록되었습니다!", description: `${selectedSong.artist} - ${selectedSong.title}` });
-    setSelectedSong(null);
-    setRating(0);
-    setReviewText("");
+
+    try {
+      const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+      const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "익명";
+      const songInfo = `${selectedSong.artist} - ${selectedSong.title}`;
+      const songId = selectedSong.isNew
+        ? `${selectedSong.title}-${selectedSong.artist}`.toLowerCase().replace(/\s+/g, '-')
+        : sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.id || "";
+
+      await supabase.functions.invoke("google-sheets", {
+        body: {
+          action: "append-review",
+          values: [[now, displayName, user!.id, songInfo, songId, rating.toString(), reviewText]],
+        },
+      });
+
+      toast({ title: "리뷰가 등록되었습니다!", description: songInfo });
+      setSelectedSong(null);
+      setRating(0);
+      setReviewText("");
+    } catch (err) {
+      console.error("Review submit error:", err);
+      toast({ title: "리뷰 등록 실패", description: "잠시 후 다시 시도해주세요", variant: "destructive" });
+    }
   };
 
   const activeRating = hoverRating || rating;

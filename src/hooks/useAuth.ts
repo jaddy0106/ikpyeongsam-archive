@@ -45,7 +45,19 @@ export function useAuth() {
       .select("display_name, avatar_url, email")
       .eq("user_id", userId)
       .single();
-    if (data) setProfile(data);
+    if (data) {
+      setProfile(data);
+      // Users 시트에 사용자 정보 동기화
+      supabase.functions.invoke("google-sheets", {
+        body: {
+          action: "sync-user",
+          userId,
+          displayName: data.display_name || "",
+          email: data.email || "",
+          avatarUrl: data.avatar_url || "",
+        },
+      }).catch((err) => console.error("User sync error:", err));
+    }
   };
 
   const signInWithGoogle = async () => {
