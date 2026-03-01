@@ -6,10 +6,15 @@ const corsHeaders = {
 const SPREADSHEET_ID = '1o36ECPpjG7eHETZ6afHClCRBt3K14xgmDviRLo2lAfs';
 const SHEET_NAME = 'SONGS';
 
+function base64url(data: string | ArrayBuffer): string {
+  const str = typeof data === 'string' ? btoa(data) : btoa(String.fromCharCode(...new Uint8Array(data)));
+  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 async function getAccessToken(clientEmail: string, privateKey: string): Promise<string> {
-  const header = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const claim = btoa(JSON.stringify({
+  const claim = base64url(JSON.stringify({
     iss: clientEmail,
     scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
     aud: 'https://oauth2.googleapis.com/token',
@@ -41,7 +46,7 @@ async function getAccessToken(clientEmail: string, privateKey: string): Promise<
     new TextEncoder().encode(signInput)
   );
 
-  const sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  const sig = base64url(signature);
   const jwt = `${signInput}.${sig}`;
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -63,8 +68,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const clientEmail = Deno.env.get('GOOGLE_SA_CLIENT_EMAIL');
-    const privateKey = Deno.env.get('GOOGLE_SA_PRIVATE_KEY');
+    const clientEmail = Deno.env.get('GOOGLE_SA_CLIENT_EMAIL')?.trim();
+    const privateKey = Deno.env.get('GOOGLE_SA_PRIVATE_KEY')?.trim();
     
     if (!clientEmail || !privateKey) {
       return new Response(
