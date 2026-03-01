@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Play, Loader2 } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Play, Loader2 } from "lucide-react";
 import SongCard from "@/components/SongCard";
-import { mockSongs } from "@/lib/mockData";
+import { useGoogleSheets } from "@/hooks/useGoogleSheets";
 import { supabase } from "@/integrations/supabase/client";
 
 type YouTubeVideo = {
@@ -13,10 +13,29 @@ type YouTubeVideo = {
   description?: string;
 };
 
+const SONGS_PER_PAGE = 5;
+const MAX_PAGES = 3;
+
 const Index = () => {
-  const recentSongs = mockSongs.slice(0, 6);
+  const { data: sheetSongs, isLoading: songsLoading } = useGoogleSheets();
+  const recentSongs = (sheetSongs || []).slice(0, SONGS_PER_PAGE * MAX_PAGES);
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = Math.min(Math.ceil(recentSongs.length / SONGS_PER_PAGE), MAX_PAGES);
+  const [sliding, setSliding] = useState<"left" | "right" | null>(null);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const goToPage = (dir: "left" | "right") => {
+    const next = dir === "right" ? currentPage + 1 : currentPage - 1;
+    if (next < 0 || next >= totalPages) return;
+    setSliding(dir);
+    setTimeout(() => {
+      setCurrentPage(next);
+      setSliding(null);
+    }, 300);
+  };
+
+  const pageSongs = recentSongs.slice(currentPage * SONGS_PER_PAGE, (currentPage + 1) * SONGS_PER_PAGE);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -103,11 +122,61 @@ const Index = () => {
             전체 보기 <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {recentSongs.map((song) => (
-            <SongCard key={song.id} song={song} />
-          ))}
-        </div>
+
+        {songsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="relative flex items-center gap-2">
+            {/* Left Arrow */}
+            <button
+              onClick={() => goToPage("left")}
+              disabled={currentPage === 0}
+              className="flex-shrink-0 p-2 rounded-full border border-border bg-card text-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            {/* Cards */}
+            <div className="flex-1 overflow-hidden">
+              <div
+                className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 transition-all duration-300 ease-in-out ${
+                  sliding === "right" ? "opacity-0 -translate-x-4" :
+                  sliding === "left" ? "opacity-0 translate-x-4" :
+                  "opacity-100 translate-x-0"
+                }`}
+              >
+                {pageSongs.map((song) => (
+                  <SongCard key={song.id} song={song} />
+                ))}
+              </div>
+            </div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => goToPage("right")}
+              disabled={currentPage >= totalPages - 1}
+              className="flex-shrink-0 p-2 rounded-full border border-border bg-card text-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Page Dots */}
+        {totalPages > 1 && !songsLoading && (
+          <div className="flex justify-center gap-1.5 mt-4">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                  i === currentPage ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
