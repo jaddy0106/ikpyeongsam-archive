@@ -145,20 +145,22 @@ const SongDetail = () => {
       {/* YouTube 링크 - 앨범커버 하단 */}
       {song.youtubeUrl && (
         <div className="mb-8">
-          <a
-            href={(() => {
+          <button
+            onClick={() => {
               const raw = song.youtubeUrl!;
               const url = raw.startsWith("http") ? raw : `https://${raw}`;
               const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-              if (match) return `https://www.youtube.com/watch?v=${match[1]}`;
-              return url;
-            })()}
-            target="_top"
-            rel="noopener noreferrer"
+              const finalUrl = match ? `https://www.youtube.com/watch?v=${match[1]}` : url;
+              try {
+                window.top?.open(finalUrl, "_blank");
+              } catch {
+                window.open(finalUrl, "_blank");
+              }
+            }}
             className="text-sm text-primary hover:underline"
           >
             ▶ YouTube에서 듣기
-          </a>
+          </button>
         </div>
       )}
       {!song.youtubeUrl && <div className="mb-8" />}
