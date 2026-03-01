@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Loader2, Star } from "lucide-react";
+import { User, Loader2, Star, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,8 @@ interface UserReview {
   곡ID: string;
   평점: string;
   한줄평: string;
+  좋아요: string;
+  coverUrl: string;
 }
 
 const MyPage = () => {
@@ -86,19 +88,39 @@ const MyPage = () => {
         <div className="space-y-3">
           {reviews.map((review, i) => {
             const rating = parseFloat(review.평점) || 0;
+            const likes = parseInt(review.좋아요) || 0;
             return (
-              <div key={i} className="rounded-lg border border-border p-4 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm text-foreground">{review.곡정보}</p>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 text-primary fill-primary" />
-                    <span className="text-sm font-bold text-foreground">{rating.toFixed(1)}</span>
+              <div key={i} className="rounded-lg border border-border p-3 flex gap-3">
+                {review.coverUrl ? (
+                  <img
+                    src={review.coverUrl}
+                    alt=""
+                    className="h-14 w-14 rounded-md object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Star className="h-5 w-5 text-muted-foreground/40" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-sm text-foreground truncate">{review.곡정보}</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Star className="h-3.5 w-3.5 text-primary fill-primary" />
+                      <span className="text-sm font-bold text-foreground">{rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  {review.한줄평 && (
+                    <p className="text-sm text-muted-foreground truncate">{review.한줄평}</p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground/60">{review.작성일시}</p>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Heart className="h-3 w-3" />
+                      <span className="text-xs">{likes}</span>
+                    </div>
                   </div>
                 </div>
-                {review.한줄평 && (
-                  <p className="text-sm text-muted-foreground">{review.한줄평}</p>
-                )}
-                <p className="text-xs text-muted-foreground/60">{review.작성일시}</p>
               </div>
             );
           })}
