@@ -247,6 +247,17 @@ Deno.serve(async (req) => {
         );
       }
 
+      // 특정 곡의 리뷰 조회
+      if (body.action === 'fetch-song-reviews') {
+        const songId = body.songId as string;
+        const { records } = await fetchSheet(accessToken, `UserReview!A1:I10000`);
+        const songReviews = records.filter((r: Record<string, string>) => r['곡ID'] === songId);
+        return new Response(
+          JSON.stringify({ success: true, reviews: songReviews }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // 사용자 정보를 Users 시트에 동기화
       if (body.action === 'sync-user') {
         const { userId, displayName, email, avatarUrl } = body as Record<string, string>;
