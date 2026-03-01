@@ -247,6 +247,54 @@ Deno.serve(async (req) => {
         );
       }
 
+      // 중복 리뷰 체크 (곡ID + 작성자ID 조합)
+      if (body.action === 'check-duplicate') {
+        const songId = body.songId as string;
+        const userId = body.userId as string;
+        const { records } = await fetchSheet(accessToken, `UserReview!A1:I10000`);
+        const existing = records.find((r: Record<string, string>) => r['곡ID'] === songId && r['작성자ID'] === userId);
+        return new Response(
+          JSON.stringify({ success: true, exists: !!existing, review: existing || null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 리뷰 수정 (곡ID + 작성자ID로 행 찾아서 업데이트, 좋아요 초기화)
+      if (body.action === 'update-review') {
+        const songId = body.songId as string;
+        const userId = body.userId as string;
+        const newRating = body.rating as string;
+        const newComment = body.comment as string;
+        const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(`UserReview!A1:I10000`)}`;
+        const rawRes = await fetch(sheetsUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const rawData = await rawRes.json();
+        const allRows: string[][] = rawData.values || [];
+        // 헤더 제외하고 매칭 행 찾기 (곡ID=index4, 작성자ID=index2)
+        let targetRowIndex = -1;
+        for (let i = 1; i < allRows.length; i++) {
+          if (allRows[i][4] === songId && allRows[i][2] === userId) {
+            targetRowIndex = i + 1; // 1-indexed for Sheets API
+            break;
+          }
+        }
+        if (targetRowIndex === -1) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Review not found' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        // 수정일시(A), 평점(F), 한줄평(G), 좋아요 초기화(H=0)
+        const now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        await batchUpdateSheet(accessToken, [
+          { range: `UserReview!A${targetRowIndex}`, values: [[now]] },
+          { range: `UserReview!F${targetRowIndex}:H${targetRowIndex}`, values: [[newRating, newComment, '0']] },
+        ]);
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // 특정 곡의 리뷰 조회
       if (body.action === 'fetch-song-reviews') {
         const songId = body.songId as string;
