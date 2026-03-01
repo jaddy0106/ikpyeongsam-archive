@@ -84,17 +84,17 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
 
           {/* 익평삼 평점 - 좌측 하단 */}
           {song.isOfficial && hasRating && (
-            <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-md bg-background/90 backdrop-blur-sm px-1.5 py-0.5">
-              <span className="text-[10px] font-semibold text-white">익평삼</span>
-              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(officialRating))}>{officialRating.toFixed(1)}</span>
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-background/90 backdrop-blur-sm px-2.5 py-1.5">
+              <span className="text-xs font-semibold text-white">익평삼</span>
+              <span className={cn("text-base font-extrabold tabular-nums leading-none", getRatingColor(officialRating))}>{officialRating.toFixed(1)}</span>
             </div>
           )}
 
           {/* 구독자 평점 - 우측 하단 */}
           {song.subscriberRating != null && song.subscriberRating > 0 && (
-            <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-muted/90 backdrop-blur-sm px-1.5 py-0.5">
-              <Users className="h-3 w-3 text-muted-foreground" />
-              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.subscriberRating))}>{song.subscriberRating.toFixed(1)}</span>
+            <div className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-lg bg-muted/90 backdrop-blur-sm px-2.5 py-1.5">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className={cn("text-base font-extrabold tabular-nums leading-none", getRatingColor(song.subscriberRating))}>{song.subscriberRating.toFixed(1)}</span>
             </div>
           )}
         </div>
