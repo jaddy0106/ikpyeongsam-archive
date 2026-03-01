@@ -96,6 +96,24 @@ async function writeSheet(accessToken: string, range: string, values: string[][]
   return data;
 }
 
+async function batchUpdateSheet(accessToken: string, data: { range: string; values: string[][] }[]) {
+  const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`;
+  const res = await fetch(sheetsUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      valueInputOption: 'RAW',
+      data,
+    }),
+  });
+  const result = await res.json();
+  if (result.error) throw new Error(JSON.stringify(result.error));
+  return result;
+}
+
 async function appendSheet(accessToken: string, range: string, values: string[][]) {
   const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
   const res = await fetch(sheetsUrl, {
@@ -146,9 +164,79 @@ Deno.serve(async (req) => {
       }
 
       if (body.action === 'append-song') {
-        const result = await appendSheet(accessToken, `${SHEET_NAME}!A:V`, body.values as string[][]);
+        const result = await appendSheet(accessToken, `${SHEET_NAME}!A:W`, body.values as string[][]);
         return new Response(
           JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (body.action === 'backfill-genre') {
+        // 1. 전체 데이터 읽기
+        const { headers, records } = await fetchSheet(accessToken, `${SHEET_NAME}!A1:W10000`);
+        const ganreIdx = headers.indexOf('Ganre');
+        const titleIdx = headers.indexOf('title');
+        const artistIdx = headers.indexOf('artist');
+
+        if (ganreIdx === -1) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Ganre column not found' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // 2. Ganre가 비어있는 행 찾기
+        const emptyRows: { rowIndex: number; title: string; artist: string }[] = [];
+        records.forEach((rec, i) => {
+          const title = rec[headers[titleIdx]] || '';
+          const artist = rec[headers[artistIdx]] || '';
+          const ganre = rec[headers[ganreIdx]] || '';
+          if (!ganre && title) {
+            emptyRows.push({ rowIndex: i + 2, title, artist }); // +2: header + 0-index
+          }
+        });
+
+        // 3. iTunes에서 장르 조회 (5개씩 병렬, 최대 50곡)
+        const allUpdates: { range: string; values: string[][] }[] = [];
+        const limit = Math.min(emptyRows.length, 50);
+        const batchSize = 5;
+        for (let i = 0; i < limit; i += batchSize) {
+          const batch = emptyRows.slice(i, i + batchSize);
+          const results = await Promise.all(
+            batch.map(async (row) => {
+              try {
+                const searchUrl = `https://itunes.apple.com/search?${new URLSearchParams({
+                  term: `${row.artist} ${row.title}`,
+                  media: 'music',
+                  entity: 'song',
+                  limit: '1',
+                  country: 'KR',
+                })}`;
+                const res = await fetch(searchUrl);
+                const data = await res.json();
+                const genre = data.results?.[0]?.primaryGenreName || '';
+                return { ...row, genre };
+              } catch {
+                return { ...row, genre: '' };
+              }
+            })
+          );
+
+          for (const r of results) {
+            if (r.genre) {
+              const col = String.fromCharCode(65 + ganreIdx);
+              allUpdates.push({ range: `${SHEET_NAME}!${col}${r.rowIndex}`, values: [[r.genre]] });
+            }
+          }
+        }
+
+        // 4. 한 번의 batchUpdate로 모두 쓰기
+        if (allUpdates.length > 0) {
+          await batchUpdateSheet(accessToken, allUpdates);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, total: emptyRows.length, updated: allUpdates.length }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
