@@ -53,7 +53,12 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased select-none;
     font-family: 'Noto Sans KR', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, [contenteditable="true"] {
+    @apply select-text cursor-text;
   }
 }
