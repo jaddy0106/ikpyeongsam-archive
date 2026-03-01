@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { Search, Star, X, User } from "lucide-react";
+import { Search, Star, X, User, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock: login state
-const isLoggedIn = false;
+import { useAuth } from "@/hooks/useAuth";
 
 // Mock search results simulating music archive search
 const mockSearchResults = [
@@ -24,19 +22,20 @@ interface SelectedSong {
   album: string;
 }
 
-const LoginPrompt = () => (
+const LoginPrompt = ({ onLogin }: { onLogin: () => void }) => (
   <div className="container flex flex-col items-center justify-center min-h-[60vh] text-center">
     <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center mb-4">
       <User className="h-8 w-8 text-muted-foreground" />
     </div>
     <h1 className="text-lg font-bold text-foreground mb-1">로그인이 필요합니다</h1>
     <p className="text-sm text-muted-foreground mb-5">리뷰를 등록하려면 Google 계정으로 로그인해주세요</p>
-    <Button className="font-medium">Google 로그인</Button>
+    <Button className="font-medium" onClick={onLogin}>Google 로그인</Button>
   </div>
 );
 
 const AddReview = () => {
   const { toast } = useToast();
+  const { user, loading, signInWithGoogle } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -44,8 +43,16 @@ const AddReview = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  if (!isLoggedIn) {
-    return <LoginPrompt />;
+  if (loading) {
+    return (
+      <div className="container flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPrompt onLogin={signInWithGoogle} />;
   }
 
   const filteredResults = searchQuery.trim().length >= 1
