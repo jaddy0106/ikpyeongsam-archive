@@ -15,20 +15,21 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let initialSessionHandled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setUser(session?.user ?? null);
-        if (session?.user) {
-          // Defer profile fetch to avoid deadlock
+        if (session?.user && initialSessionHandled) {
           setTimeout(() => fetchProfile(session.user.id), 0);
-        } else {
-          setProfile(null);
         }
+        if (!session) setProfile(null);
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      initialSessionHandled = true;
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
