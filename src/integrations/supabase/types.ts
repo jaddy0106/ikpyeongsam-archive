@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_aliases: {
+        Row: {
+          aliases: string
+          id: string
+          keyword: string
+        }
+        Insert: {
+          aliases: string
+          id?: string
+          keyword: string
+        }
+        Update: {
+          aliases?: string
+          id?: string
+          keyword?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -64,6 +82,120 @@ export type Database = {
           id?: string
           reviewer_id?: string
           song_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      songs: {
+        Row: {
+          abc: string | null
+          album: string | null
+          artist: string
+          avg_rating: number | null
+          comment_1: string | null
+          comment_2: string | null
+          comment_3: string | null
+          cover_url: string | null
+          created_at: string
+          genre: string | null
+          id: string
+          ip_youtube_url: string | null
+          isrc: string | null
+          month: number | null
+          rate_1: number | null
+          rate_2: number | null
+          rate_3: number | null
+          release_date: string | null
+          title: string
+          year: number | null
+          youtube_url: string | null
+        }
+        Insert: {
+          abc?: string | null
+          album?: string | null
+          artist: string
+          avg_rating?: number | null
+          comment_1?: string | null
+          comment_2?: string | null
+          comment_3?: string | null
+          cover_url?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          ip_youtube_url?: string | null
+          isrc?: string | null
+          month?: number | null
+          rate_1?: number | null
+          rate_2?: number | null
+          rate_3?: number | null
+          release_date?: string | null
+          title: string
+          year?: number | null
+          youtube_url?: string | null
+        }
+        Update: {
+          abc?: string | null
+          album?: string | null
+          artist?: string
+          avg_rating?: number | null
+          comment_1?: string | null
+          comment_2?: string | null
+          comment_3?: string | null
+          cover_url?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          ip_youtube_url?: string | null
+          isrc?: string | null
+          month?: number | null
+          rate_1?: number | null
+          rate_2?: number | null
+          rate_3?: number | null
+          release_date?: string | null
+          title?: string
+          year?: number | null
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      user_reviews: {
+        Row: {
+          comment: string | null
+          cover_url: string | null
+          created_at: string
+          id: string
+          likes_count: number
+          rating: number
+          reviewer_name: string | null
+          song_id: string
+          song_info: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          rating?: number
+          reviewer_name?: string | null
+          song_id: string
+          song_info?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          rating?: number
+          reviewer_name?: string | null
+          song_id?: string
+          song_info?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
