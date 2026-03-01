@@ -250,35 +250,42 @@ Deno.serve(async (req) => {
       if (body.action === 'sync-user') {
         const { userId, displayName, email, avatarUrl } = body as Record<string, string>;
         const usersSheet = 'Users';
-        // Users 시트가 없으면 생성
         await createSheet(accessToken, usersSheet);
-        
-        // 기존 데이터 확인
-        let existingRecords: Record<string, string>[] = [];
-        try {
-          const result = await fetchSheet(accessToken, `${usersSheet}!A1:E10000`);
-          existingRecords = result.records;
-        } catch {
-          // 시트가 비어있으면 헤더 생성
-          await writeSheet(accessToken, `${usersSheet}!A1:E1`, [['userId', 'displayName', 'email', 'avatarUrl', 'lastLogin']]);
-        }
 
         const now = new Date().toISOString();
-        const existingIdx = existingRecords.findIndex((r) => r['userId'] === userId);
-        
-        if (existingIdx >= 0) {
-          // 기존 사용자 업데이트
-          const rowNum = existingIdx + 2;
-          await writeSheet(accessToken, `${usersSheet}!A${rowNum}:E${rowNum}`, [
-            [userId, displayName || '', email || '', avatarUrl || '', now],
-          ]);
+        const headerRow = ['userId', 'displayName', 'email', 'avatarUrl', 'lastLogin'];
+
+        // 시트 데이터 읽기 (raw values)
+        const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(`${usersSheet}!A1:E10000`)}`;
+        const rawRes = await fetch(sheetsUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const rawData = await rawRes.json();
+        const allRows: string[][] = rawData.values || [];
+
+        // 헤더가 없거나 첫 행이 헤더가 아니면 헤더 삽입
+        if (allRows.length === 0 || allRows[0][0] !== 'userId') {
+          // 기존 데이터가 있으면 헤더 + 기존 데이터로 재작성
+          const newData = [headerRow, ...allRows];
+          await writeSheet(accessToken, `${usersSheet}!A1:E${newData.length}`, newData);
+          // 기존 데이터 중 userId 매칭 찾기
+          const existingIdx = allRows.findIndex((row) => row[0] === userId);
+          if (existingIdx >= 0) {
+            const rowNum = existingIdx + 2; // +1 header, +1 for 1-index
+            await writeSheet(accessToken, `${usersSheet}!E${rowNum}:E${rowNum}`, [[now]]);
+          } else {
+            await appendSheet(accessToken, `${usersSheet}!A:E`, [[userId, displayName || '', email || '', avatarUrl || '', now]]);
+          }
         } else {
-          // 새 사용자 추가
-          await appendSheet(accessToken, `${usersSheet}!A:E`, [
-            [userId, displayName || '', email || '', avatarUrl || '', now],
-          ]);
+          // 헤더가 있는 정상 상태 - 데이터 행에서 userId 검색
+          const dataRows = allRows.slice(1);
+          const existingIdx = dataRows.findIndex((row) => row[0] === userId);
+          if (existingIdx >= 0) {
+            const rowNum = existingIdx + 2;
+            await writeSheet(accessToken, `${usersSheet}!E${rowNum}:E${rowNum}`, [[now]]);
+          } else {
+            await appendSheet(accessToken, `${usersSheet}!A:E`, [[userId, displayName || '', email || '', avatarUrl || '', now]]);
+          }
         }
-        
+
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
