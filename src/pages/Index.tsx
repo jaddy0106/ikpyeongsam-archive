@@ -18,7 +18,7 @@ const MAX_PAGES = 3;
 
 const Index = () => {
   const { data: sheetSongs, isLoading: songsLoading } = useGoogleSheets();
-  const recentSongs = (sheetSongs || []).slice(0, SONGS_PER_PAGE * MAX_PAGES);
+  const recentSongs = [...(sheetSongs || [])].reverse().slice(0, SONGS_PER_PAGE * MAX_PAGES);
   const [currentPage, setCurrentPage] = useState(0);
   const totalPages = Math.min(Math.ceil(recentSongs.length / SONGS_PER_PAGE), MAX_PAGES);
   const [sliding, setSliding] = useState<"left" | "right" | null>(null);
