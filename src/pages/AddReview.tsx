@@ -12,11 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 interface SelectedSong {
+  id?: string;
   title: string;
   artist: string;
   album: string;
   coverUrl?: string;
-  isNew?: boolean; // iTunes에서 가져온 신규 곡
+  isNew?: boolean;
   releaseDate?: string;
 }
 
@@ -56,20 +57,13 @@ const AddReview = () => {
   const [itunesLoading, setItunesLoading] = useState(false);
   const [addingSong, setAddingSong] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // 디바운스된 iTunes 검색
   const [itunesTimer, setItunesTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const searchITunes = useCallback(async (query: string) => {
-    if (query.trim().length < 2) {
-      setItunesResults([]);
-      return;
-    }
+    if (query.trim().length < 2) { setItunesResults([]); return; }
     setItunesLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("itunes-search", {
-        body: { term: query.trim() },
-      });
+      const { data, error } = await supabase.functions.invoke("itunes-search", { body: { term: query.trim() } });
       if (error) throw error;
       setItunesResults(data?.results || []);
     } catch (err) {
@@ -83,8 +77,6 @@ const AddReview = () => {
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setShowResults(true);
-
-    // 디바운스 iTunes 검색
     if (itunesTimer) clearTimeout(itunesTimer);
     if (value.trim().length >= 2) {
       const timer = setTimeout(() => searchITunes(value), 500);
@@ -94,7 +86,6 @@ const AddReview = () => {
     }
   };
 
-  // 시트 검색 결과 (우선순위 정렬)
   const sheetResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (q.length < 1) return [];
@@ -113,16 +104,13 @@ const AddReview = () => {
       .slice(0, 10);
   }, [searchQuery, sheetSongs, aliasRules]);
 
-  // iTunes 결과에서 시트에 이미 있는 곡 제외
   const filteredItunesResults = useMemo(() => {
     if (itunesResults.length === 0) return [];
     return itunesResults.filter((itunes) => {
       const itunesTitle = itunes.title.toLowerCase();
       const itunesArtist = itunes.artist.toLowerCase();
       return !sheetSongs.some(
-        (s) =>
-          s.title.toLowerCase() === itunesTitle &&
-          s.artist.toLowerCase() === itunesArtist
+        (s) => s.title.toLowerCase() === itunesTitle && s.artist.toLowerCase() === itunesArtist
       );
     });
   }, [itunesResults, sheetSongs]);
@@ -139,8 +127,9 @@ const AddReview = () => {
     return <LoginPrompt onLogin={signInWithGoogle} />;
   }
 
-  const handleSelectSheetSong = (song: { title: string; artist: string; album?: string; coverUrl?: string }) => {
+  const handleSelectSheetSong = (song: { id: string; title: string; artist: string; album?: string; coverUrl?: string }) => {
     setSelectedSong({
+      id: song.id,
       title: song.title,
       artist: song.artist,
       album: song.album || "",
@@ -155,45 +144,31 @@ const AddReview = () => {
   const handleSelectItunesSong = async (itunes: ITunesResult) => {
     setAddingSong(true);
     try {
-      // 구글 시트에 신규 곡 추가
+      // Insert new song into Supabase
       const newSongId = crypto.randomUUID();
       const releaseDate = itunes.releaseDate
-        ? new Date(itunes.releaseDate).toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-          }).replace(/\./g, ".").trim()
+        ? new Date(itunes.releaseDate).toLocaleDateString("ko-KR", { year: "numeric", month: "numeric", day: "numeric" }).replace(/\./g, ".").trim()
         : "";
-      const year = itunes.releaseDate ? new Date(itunes.releaseDate).getFullYear().toString() : "";
-      const month = itunes.releaseDate ? (new Date(itunes.releaseDate).getMonth() + 1).toString() : "";
+      const year = itunes.releaseDate ? new Date(itunes.releaseDate).getFullYear() : null;
+      const month = itunes.releaseDate ? new Date(itunes.releaseDate).getMonth() + 1 : null;
 
-      const { error } = await supabase.functions.invoke("google-sheets", {
-        body: {
-          action: "append-song",
-          values: [[
-            newSongId,
-            year,
-            month,
-            itunes.artist,
-            itunes.title,
-            itunes.album,
-            releaseDate,
-            itunes.coverUrl,
-            "", // ISRC
-            "", // cover
-            "", // ytUrl
-            "C", // ABC - 신규 추가 곡은 C
-            "", "", "", "", // rates & avg
-            "", "", "", // comments
-            "", // IPyoutube
-            itunes.genre || "", // Ganre
-          ]],
-        },
+      const { error } = await supabase.from("songs").insert({
+        id: newSongId,
+        year,
+        month,
+        artist: itunes.artist,
+        title: itunes.title,
+        album: itunes.album,
+        release_date: releaseDate,
+        cover_url: itunes.coverUrl,
+        abc: "C",
+        genre: itunes.genre || null,
       });
 
       if (error) throw error;
 
       setSelectedSong({
+        id: newSongId,
         title: itunes.title,
         artist: itunes.artist,
         album: itunes.album,
@@ -205,23 +180,15 @@ const AddReview = () => {
       setShowResults(false);
       setItunesResults([]);
 
-      toast({
-        title: "신규 곡이 추가되었습니다",
-        description: `${itunes.artist} - ${itunes.title}`,
-      });
+      toast({ title: "신규 곡이 추가되었습니다", description: `${itunes.artist} - ${itunes.title}` });
     } catch (err) {
       console.error("Error adding song:", err);
-      toast({
-        title: "곡 추가 실패",
-        description: "잠시 후 다시 시도해주세요",
-        variant: "destructive",
-      });
+      toast({ title: "곡 추가 실패", description: "잠시 후 다시 시도해주세요", variant: "destructive" });
     } finally {
       setAddingSong(false);
     }
   };
 
-  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSong || rating === 0) {
@@ -233,15 +200,17 @@ const AddReview = () => {
     try {
       const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "익명";
       const songInfo = `${selectedSong.artist} - ${selectedSong.title}`;
-      const songId = selectedSong.isNew
-        ? `${selectedSong.title}-${selectedSong.artist}`.toLowerCase().replace(/\s+/g, '-')
-        : sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.id || "";
+      const songId = selectedSong.id || sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.id || "";
 
-      // 중복 리뷰 체크
-      const { data: dupData } = await supabase.functions.invoke("google-sheets", {
-        body: { action: "check-duplicate", songId, userId: user!.id },
-      });
-      if (dupData?.exists) {
+      // Check duplicate
+      const { data: existing } = await supabase
+        .from("user_reviews")
+        .select("id")
+        .eq("song_id", songId)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      if (existing) {
         toast({
           title: "이미 리뷰를 작성한 곡입니다",
           description: "동일한 곡에는 하나의 리뷰만 작성할 수 있습니다. 마이페이지에서 수정해주세요.",
@@ -251,15 +220,20 @@ const AddReview = () => {
         return;
       }
 
-      const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
       const coverUrl = selectedSong.coverUrl || sheetSongs.find(s => s.title === selectedSong.title && s.artist === selectedSong.artist)?.coverUrl || "";
 
-      await supabase.functions.invoke("google-sheets", {
-        body: {
-          action: "append-review",
-          values: [[now, displayName, user!.id, songInfo, songId, rating.toString(), reviewText, "0", coverUrl]],
-        },
+      const { error } = await supabase.from("user_reviews").insert({
+        user_id: user!.id,
+        song_id: songId,
+        song_info: songInfo,
+        reviewer_name: displayName,
+        rating,
+        comment: reviewText || null,
+        likes_count: 0,
+        cover_url: coverUrl || null,
       });
+
+      if (error) throw error;
 
       toast({ title: "리뷰가 등록되었습니다!", description: songInfo });
       setSelectedSong(null);
@@ -287,11 +261,7 @@ const AddReview = () => {
           {selectedSong ? (
             <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3 gap-3">
               {selectedSong.coverUrl && (
-                <img
-                  src={selectedSong.coverUrl}
-                  alt=""
-                  className="h-10 w-10 rounded object-cover flex-shrink-0"
-                />
+                <img src={selectedSong.coverUrl} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -319,7 +289,6 @@ const AddReview = () => {
               />
               {showResults && searchQuery.trim().length >= 1 && (
                 <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-border bg-popover shadow-lg max-h-72 overflow-y-auto">
-                  {/* 시트 검색 결과 */}
                   {sheetResults.length > 0 && (
                     <div>
                       <div className="px-3 py-1.5 bg-secondary/30 border-b border-border">
@@ -344,7 +313,6 @@ const AddReview = () => {
                     </div>
                   )}
 
-                  {/* iTunes 검색 결과 */}
                   {filteredItunesResults.length > 0 && (
                     <div>
                       <div className="px-3 py-1.5 bg-secondary/30 border-b border-border flex items-center gap-1.5">
@@ -372,7 +340,6 @@ const AddReview = () => {
                     </div>
                   )}
 
-                  {/* iTunes 로딩 */}
                   {itunesLoading && sheetResults.length === 0 && (
                     <div className="p-4 text-center flex items-center justify-center gap-2">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -380,7 +347,6 @@ const AddReview = () => {
                     </div>
                   )}
 
-                  {/* 결과 없음 */}
                   {!hasAnyResults && !itunesLoading && searchQuery.trim().length >= 1 && (
                     <div className="p-4 text-center">
                       <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
@@ -400,7 +366,7 @@ const AddReview = () => {
           <p className="text-xs text-muted-foreground">익평삼 DB + iTunes에서 검색됩니다</p>
         </div>
 
-        {/* Star Rating - 5점 만점, 0.5 단위 */}
+        {/* Star Rating */}
         <div className="space-y-2">
           <Label>평점 * <span className="text-muted-foreground font-normal">(0.5~5.0)</span></Label>
           <div className="flex items-center gap-0.5">
@@ -417,9 +383,7 @@ const AddReview = () => {
                 >
                   <Star
                     className={`h-6 w-6 transition-colors ${
-                      value <= activeRating
-                        ? "text-primary fill-primary"
-                        : "text-muted-foreground/20"
+                      value <= activeRating ? "text-primary fill-primary" : "text-muted-foreground/20"
                     }`}
                   />
                 </button>

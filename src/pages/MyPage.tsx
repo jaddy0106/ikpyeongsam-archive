@@ -16,15 +16,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 interface UserReview {
-  작성일시: string;
-  작성자: string;
-  작성자ID: string;
-  곡정보: string;
-  곡ID: string;
-  평점: string;
-  한줄평: string;
-  좋아요: string;
-  coverUrl: string;
+  id: string;
+  user_id: string;
+  song_id: string;
+  song_info: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string | null;
+  likes_count: number;
+  cover_url: string | null;
+  created_at: string;
 }
 
 const MyPage = () => {
@@ -33,7 +34,6 @@ const MyPage = () => {
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
-  // 수정 관련 state
   const [editReview, setEditReview] = useState<UserReview | null>(null);
   const [editRating, setEditRating] = useState(0);
   const [editHoverRating, setEditHoverRating] = useState(0);
@@ -44,14 +44,19 @@ const MyPage = () => {
   const fetchReviews = () => {
     if (!user) return;
     setReviewsLoading(true);
-    supabase.functions
-      .invoke("google-sheets", {
-        body: { action: "fetch-user-reviews", userId: user.id },
-      })
-      .then(({ data, error }) => {
-        if (!error && data?.reviews) setReviews(data.reviews);
-      })
-      .finally(() => setReviewsLoading(false));
+    const doFetch = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_reviews")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        if (!error && data) setReviews(data as unknown as UserReview[]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+    doFetch();
   };
 
   useEffect(() => {
@@ -60,8 +65,8 @@ const MyPage = () => {
 
   const openEditDialog = (review: UserReview) => {
     setEditReview(review);
-    setEditRating(parseFloat(review.평점) || 0);
-    setEditComment(review.한줄평 || "");
+    setEditRating(review.rating || 0);
+    setEditComment(review.comment || "");
     setShowConfirm(false);
   };
 
@@ -69,15 +74,16 @@ const MyPage = () => {
     if (!editReview || !user || editRating === 0) return;
     setUpdating(true);
     try {
-      const { error } = await supabase.functions.invoke("google-sheets", {
-        body: {
-          action: "update-review",
-          songId: editReview.곡ID,
-          userId: user.id,
-          rating: editRating.toString(),
-          comment: editComment,
-        },
-      });
+      const { error } = await supabase
+        .from("user_reviews")
+        .update({
+          rating: editRating,
+          comment: editComment || null,
+          likes_count: 0,
+        })
+        .eq("id", editReview.id)
+        .eq("user_id", user.id);
+
       if (error) throw error;
       toast({ title: "리뷰가 수정되었습니다", description: "좋아요 수가 초기화되었습니다." });
       setEditReview(null);
@@ -145,13 +151,12 @@ const MyPage = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {reviews.map((review, i) => {
-            const rating = parseFloat(review.평점) || 0;
-            const likes = parseInt(review.좋아요) || 0;
+          {reviews.map((review) => {
+            const likes = review.likes_count || 0;
             return (
-              <div key={i} className="rounded-lg border border-border p-3 flex gap-3">
-                {review.coverUrl ? (
-                  <img src={review.coverUrl} alt="" className="h-14 w-14 rounded-md object-cover flex-shrink-0" />
+              <div key={review.id} className="rounded-lg border border-border p-3 flex gap-3">
+                {review.cover_url ? (
+                  <img src={review.cover_url} alt="" className="h-14 w-14 rounded-md object-cover flex-shrink-0" />
                 ) : (
                   <div className="h-14 w-14 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
                     <Star className="h-5 w-5 text-muted-foreground/40" />
@@ -159,11 +164,11 @@ const MyPage = () => {
                 )}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-sm text-foreground truncate">{review.곡정보}</p>
+                    <p className="font-medium text-sm text-foreground truncate">{review.song_info}</p>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <div className="flex items-center gap-1">
                         <Star className="h-3.5 w-3.5 text-primary fill-primary" />
-                        <span className="text-sm font-bold text-foreground">{rating.toFixed(1)}</span>
+                        <span className="text-sm font-bold text-foreground">{review.rating.toFixed(1)}</span>
                       </div>
                       <button
                         onClick={() => openEditDialog(review)}
@@ -174,11 +179,13 @@ const MyPage = () => {
                       </button>
                     </div>
                   </div>
-                  {review.한줄평 && (
-                    <p className="text-sm text-muted-foreground truncate">{review.한줄평}</p>
+                  {review.comment && (
+                    <p className="text-sm text-muted-foreground truncate">{review.comment}</p>
                   )}
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground/60">{review.작성일시}</p>
+                    <p className="text-xs text-muted-foreground/60">
+                      {new Date(review.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                    </p>
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Heart className="h-3 w-3" />
                       <span className="text-xs">{likes}</span>
@@ -196,7 +203,7 @@ const MyPage = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>리뷰 수정</DialogTitle>
-            <DialogDescription>{editReview?.곡정보}</DialogDescription>
+            <DialogDescription>{editReview?.song_info}</DialogDescription>
           </DialogHeader>
 
           {!showConfirm ? (
@@ -251,7 +258,7 @@ const MyPage = () => {
               <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 space-y-1">
                 <p className="text-sm font-medium text-destructive">⚠️ 좋아요 수가 초기화됩니다</p>
                 <p className="text-xs text-muted-foreground">
-                  리뷰를 수정하면 기존에 받은 좋아요 수({editReview?.좋아요 || "0"}개)가 0으로 초기화됩니다. 계속하시겠습니까?
+                  리뷰를 수정하면 기존에 받은 좋아요 수({editReview?.likes_count || 0}개)가 0으로 초기화됩니다. 계속하시겠습니까?
                 </p>
               </div>
               <DialogFooter>

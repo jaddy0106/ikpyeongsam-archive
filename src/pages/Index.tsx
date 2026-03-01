@@ -15,15 +15,16 @@ type YouTubeVideo = {
 };
 
 interface RecentReview {
-  작성일시: string;
-  작성자: string;
-  작성자ID: string;
-  곡정보: string;
-  곡ID: string;
-  평점: string;
-  한줄평: string;
-  좋아요: string;
-  coverUrl: string;
+  id: string;
+  user_id: string;
+  song_id: string;
+  song_info: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string | null;
+  likes_count: number;
+  cover_url: string | null;
+  created_at: string;
 }
 
 const SONGS_PER_PAGE = 5;
@@ -55,13 +56,9 @@ const Index = () => {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("youtube-videos", {
-          body: null,
-        });
+        const { data, error } = await supabase.functions.invoke("youtube-videos", { body: null });
         if (error) throw error;
-        if (data?.success && data.videos) {
-          setVideos(data.videos.slice(0, 4));
-        }
+        if (data?.success && data.videos) setVideos(data.videos.slice(0, 4));
       } catch (err) {
         console.error("Failed to fetch YouTube videos:", err);
       } finally {
@@ -71,14 +68,17 @@ const Index = () => {
     fetchVideos();
   }, []);
 
+  // Fetch recent reviews from Supabase
   useEffect(() => {
     const fetchRecentReviews = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("google-sheets", {
-          body: { action: "fetch-recent-reviews", limit: 5 },
-        });
-        if (!error && data?.reviews) {
-          setRecentReviews(data.reviews);
+        const { data, error } = await supabase
+          .from("user_reviews")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        if (!error && data) {
+          setRecentReviews(data as unknown as RecentReview[]);
         }
       } catch (err) {
         console.error("Failed to fetch recent reviews:", err);
@@ -93,6 +93,15 @@ const Index = () => {
     try {
       const d = new Date(dateStr);
       return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatReviewDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     } catch {
       return dateStr;
     }
@@ -148,10 +157,7 @@ const Index = () => {
       <section className="container py-8 border-t border-border">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-foreground">최근 평가</h2>
-          <Link
-            to="/archive"
-            className="text-xs text-primary hover:underline flex items-center gap-1"
-          >
+          <Link to="/archive" className="text-xs text-primary hover:underline flex items-center gap-1">
             전체 보기 <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -162,7 +168,6 @@ const Index = () => {
           </div>
         ) : (
           <div className="relative">
-            {/* Cards */}
             <div
               className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 transition-all duration-300 ease-in-out ${
                 sliding === "right" ? "opacity-0 -translate-x-4" :
@@ -175,7 +180,6 @@ const Index = () => {
               ))}
             </div>
 
-            {/* Left Arrow Overlay */}
             {currentPage > 0 && (
               <button
                 onClick={() => goToPage("left")}
@@ -185,7 +189,6 @@ const Index = () => {
               </button>
             )}
 
-            {/* Right Arrow Overlay */}
             {currentPage < totalPages - 1 && (
               <button
                 onClick={() => goToPage("right")}
@@ -197,7 +200,6 @@ const Index = () => {
           </div>
         )}
 
-        {/* Page Dots */}
         {totalPages > 1 && !songsLoading && (
           <div className="flex justify-center gap-1.5 mt-4">
             {Array.from({ length: totalPages }).map((_, i) => (
@@ -224,13 +226,12 @@ const Index = () => {
           </div>
         ) : recentReviews.length > 0 ? (
           <div className="space-y-2">
-            {recentReviews.map((review, i) => {
-              const rating = parseFloat(review.평점) || 0;
-              const likes = parseInt(review.좋아요) || 0;
+            {recentReviews.map((review) => {
+              const likes = review.likes_count || 0;
               return (
                 <Link
-                  key={`${review.작성자ID}-${review.곡ID}-${i}`}
-                  to={`/song/${review.곡ID}`}
+                  key={review.id}
+                  to={`/song/${review.song_id}`}
                   className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 hover:bg-secondary/50 transition-colors"
                 >
                   <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -238,15 +239,15 @@ const Index = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{review.작성자}</span>
-                      <RatingBadge rating={rating} size="sm" />
+                      <span className="text-sm font-medium text-foreground">{review.reviewer_name}</span>
+                      <RatingBadge rating={review.rating} size="sm" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{review.곡정보}</p>
-                    {review.한줄평 && (
-                      <p className="text-sm text-muted-foreground mt-1">{review.한줄평}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{review.song_info}</p>
+                    {review.comment && (
+                      <p className="text-sm text-muted-foreground mt-1">{review.comment}</p>
                     )}
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
+                      <span className="text-xs text-muted-foreground/60">{formatReviewDate(review.created_at)}</span>
                       {likes > 0 && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Heart className="h-3 w-3" />

@@ -19,15 +19,16 @@ const memberAvatars: Record<string, string> = {
 };
 
 interface SubscriberReview {
-  작성일시: string;
-  작성자: string;
-  작성자ID: string;
-  곡정보: string;
-  곡ID: string;
-  평점: string;
-  한줄평: string;
-  좋아요: string;
-  coverUrl: string;
+  id: string;
+  user_id: string;
+  song_id: string;
+  song_info: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string | null;
+  likes_count: number;
+  cover_url: string | null;
+  created_at: string;
 }
 
 type SortMode = "likes" | "latest";
@@ -48,25 +49,29 @@ const SongDetail = () => {
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const [likingInProgress, setLikingInProgress] = useState<Set<string>>(new Set());
 
+  // Fetch reviews from Supabase
   useEffect(() => {
     if (!id) return;
     setReviewsLoading(true);
-    supabase.functions
-      .invoke("google-sheets", {
-        body: { action: "fetch-song-reviews", songId: id },
-      })
-      .then(({ data, error }) => {
-        if (!error && data?.reviews) {
-          setSubscriberReviews(data.reviews);
-          // Initialize like counts from sheet data
+    const fetchReviews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_reviews")
+          .select("*")
+          .eq("song_id", id);
+        if (!error && data) {
+          setSubscriberReviews(data as unknown as SubscriberReview[]);
           const counts: Record<string, number> = {};
-          data.reviews.forEach((r: SubscriberReview) => {
-            counts[r.작성자ID] = parseInt(r.좋아요) || 0;
+          (data as unknown as SubscriberReview[]).forEach((r) => {
+            counts[r.user_id] = r.likes_count;
           });
           setLikeCounts(counts);
         }
-      })
-      .finally(() => setReviewsLoading(false));
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+    fetchReviews();
   }, [id]);
 
   // Fetch my likes for this song
@@ -114,10 +119,12 @@ const SongDetail = () => {
           .from("review_likes")
           .insert({ user_id: user.id, song_id: id, reviewer_id: reviewerId });
       }
-      // Sync count to Google Sheets
-      await supabase.functions.invoke("google-sheets", {
-        body: { action: "toggle-like", songId: id, reviewerId, newCount },
-      });
+      // Update likes_count in user_reviews
+      await supabase
+        .from("user_reviews")
+        .update({ likes_count: newCount })
+        .eq("song_id", id)
+        .eq("user_id", reviewerId);
     } catch {
       // Revert on error
       setMyLikes((prev) => {
@@ -140,15 +147,15 @@ const SongDetail = () => {
     const reviews = [...subscriberReviews];
     if (sortMode === "likes") {
       reviews.sort((a, b) => {
-        const likesDiff = (parseInt(b.좋아요) || 0) - (parseInt(a.좋아요) || 0);
+        const likesDiff = (b.likes_count || 0) - (a.likes_count || 0);
         if (likesDiff !== 0) return likesDiff;
-        return new Date(b.작성일시).getTime() - new Date(a.작성일시).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
     } else {
       reviews.sort((a, b) => {
-        const dateDiff = new Date(b.작성일시).getTime() - new Date(a.작성일시).getTime();
+        const dateDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         if (dateDiff !== 0) return dateDiff;
-        return (parseInt(b.좋아요) || 0) - (parseInt(a.좋아요) || 0);
+        return (b.likes_count || 0) - (a.likes_count || 0);
       });
     }
     return reviews;
@@ -158,7 +165,7 @@ const SongDetail = () => {
   const pagedReviews = sortedReviews.slice(page * REVIEWS_PER_PAGE, (page + 1) * REVIEWS_PER_PAGE);
 
   const avgSubscriberRating = subscriberReviews.length > 0
-    ? subscriberReviews.reduce((sum, r) => sum + (parseFloat(r.평점) || 0), 0) / subscriberReviews.length
+    ? subscriberReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / subscriberReviews.length
     : 0;
 
   // Reset page when sort changes
@@ -188,6 +195,15 @@ const SongDetail = () => {
     : 0;
 
   const hasIndividualRatings = song.memberRatings?.some((mr) => mr.rating > 0);
+
+  const formatReviewDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <div className="container max-w-2xl py-8">
@@ -222,7 +238,7 @@ const SongDetail = () => {
         </div>
       </div>
 
-      {/* YouTube 링크 - 앨범커버 하단 */}
+      {/* YouTube 링크 */}
       {song.youtubeUrl && (
         <div className="mb-8">
           <button
@@ -231,11 +247,7 @@ const SongDetail = () => {
               const url = raw.startsWith("http") ? raw : `https://${raw}`;
               const match = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
               const finalUrl = match ? `https://www.youtube.com/watch?v=${match[1]}` : url;
-              try {
-                window.top?.open(finalUrl, "_blank");
-              } catch {
-                window.open(finalUrl, "_blank");
-              }
+              try { window.top?.open(finalUrl, "_blank"); } catch { window.open(finalUrl, "_blank"); }
             }}
             className="text-sm text-primary hover:underline"
           >
@@ -332,25 +344,23 @@ const SongDetail = () => {
         ) : pagedReviews.length > 0 ? (
           <>
             <div className="space-y-2">
-              {pagedReviews.map((review, i) => {
-                const rating = parseFloat(review.평점) || 0;
-                const likes = likeCounts[review.작성자ID] ?? (parseInt(review.좋아요) || 0);
-                const isLiked = myLikes.has(review.작성자ID);
-                const isOwnReview = user?.id === review.작성자ID;
+              {pagedReviews.map((review) => {
+                const likes = likeCounts[review.user_id] ?? review.likes_count;
+                const isLiked = myLikes.has(review.user_id);
                 return (
-                  <div key={`${review.작성자ID}-${i}`} className="flex items-start gap-3 rounded-lg border border-border bg-background/50 p-3">
+                  <div key={review.id} className="flex items-start gap-3 rounded-lg border border-border bg-background/50 p-3">
                     <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{review.작성자}</span>
-                          <RatingBadge rating={rating} size="sm" />
+                          <span className="text-sm font-medium text-foreground">{review.reviewer_name}</span>
+                          <RatingBadge rating={review.rating} size="sm" />
                         </div>
                         <button
-                          onClick={() => user && toggleLike(review.작성자ID)}
-                          disabled={!user || likingInProgress.has(review.작성자ID)}
+                          onClick={() => user && toggleLike(review.user_id)}
+                          disabled={!user || likingInProgress.has(review.user_id)}
                           className={cn(
                             "flex items-center gap-1 transition-colors select-none",
                             !user
@@ -364,11 +374,11 @@ const SongDetail = () => {
                           <span className="text-sm">{likes}</span>
                         </button>
                       </div>
-                      {review.한줄평 && (
-                        <p className="text-sm text-muted-foreground mt-1">{review.한줄평}</p>
+                      {review.comment && (
+                        <p className="text-sm text-muted-foreground mt-1">{review.comment}</p>
                       )}
                       <div className="mt-1.5">
-                        <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
+                        <span className="text-xs text-muted-foreground/60">{formatReviewDate(review.created_at)}</span>
                       </div>
                     </div>
                   </div>

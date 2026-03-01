@@ -2,3 +2,12 @@ project_id = "bdiszlltcgznqpiypuag"
 
 [functions.youtube-videos]
 verify_jwt = false
+
+[functions.migrate-sheets]
+verify_jwt = false
+
+[functions.google-sheets]
+verify_jwt = false
+
+[functions.itunes-search]
+verify_jwt = false
