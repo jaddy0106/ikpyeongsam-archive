@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Star, Music, User, Users, Loader2, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { memberInfo } from "@/lib/mockData";
 import { useGoogleSheets } from "@/hooks/useGoogleSheets";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import RatingBadge from "@/components/RatingBadge";
 import { Button } from "@/components/ui/button";
@@ -36,12 +37,16 @@ const REVIEWS_PER_PAGE = 5;
 const SongDetail = () => {
   const { id } = useParams();
   const { data: songs = [], isLoading } = useGoogleSheets();
+  const { user } = useAuth();
   const song = songs.find((s) => s.id === id);
 
   const [subscriberReviews, setSubscriberReviews] = useState<SubscriberReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("likes");
   const [page, setPage] = useState(0);
+  const [myLikes, setMyLikes] = useState<Set<string>>(new Set());
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [likingInProgress, setLikingInProgress] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!id) return;
@@ -51,10 +56,85 @@ const SongDetail = () => {
         body: { action: "fetch-song-reviews", songId: id },
       })
       .then(({ data, error }) => {
-        if (!error && data?.reviews) setSubscriberReviews(data.reviews);
+        if (!error && data?.reviews) {
+          setSubscriberReviews(data.reviews);
+          // Initialize like counts from sheet data
+          const counts: Record<string, number> = {};
+          data.reviews.forEach((r: SubscriberReview) => {
+            counts[r.작성자ID] = parseInt(r.좋아요) || 0;
+          });
+          setLikeCounts(counts);
+        }
       })
       .finally(() => setReviewsLoading(false));
   }, [id]);
+
+  // Fetch my likes for this song
+  useEffect(() => {
+    if (!id || !user) return;
+    supabase
+      .from("review_likes")
+      .select("reviewer_id")
+      .eq("user_id", user.id)
+      .eq("song_id", id)
+      .then(({ data }) => {
+        if (data) {
+          setMyLikes(new Set(data.map((d) => d.reviewer_id)));
+        }
+      });
+  }, [id, user]);
+
+  const toggleLike = useCallback(async (reviewerId: string) => {
+    if (!user || !id || likingInProgress.has(reviewerId)) return;
+    setLikingInProgress((prev) => new Set(prev).add(reviewerId));
+
+    const isLiked = myLikes.has(reviewerId);
+    const currentCount = likeCounts[reviewerId] || 0;
+    const newCount = isLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+
+    // Optimistic update
+    setMyLikes((prev) => {
+      const next = new Set(prev);
+      if (isLiked) next.delete(reviewerId);
+      else next.add(reviewerId);
+      return next;
+    });
+    setLikeCounts((prev) => ({ ...prev, [reviewerId]: newCount }));
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from("review_likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("song_id", id)
+          .eq("reviewer_id", reviewerId);
+      } else {
+        await supabase
+          .from("review_likes")
+          .insert({ user_id: user.id, song_id: id, reviewer_id: reviewerId });
+      }
+      // Sync count to Google Sheets
+      await supabase.functions.invoke("google-sheets", {
+        body: { action: "toggle-like", songId: id, reviewerId, newCount },
+      });
+    } catch {
+      // Revert on error
+      setMyLikes((prev) => {
+        const next = new Set(prev);
+        if (isLiked) next.add(reviewerId);
+        else next.delete(reviewerId);
+        return next;
+      });
+      setLikeCounts((prev) => ({ ...prev, [reviewerId]: currentCount }));
+    } finally {
+      setLikingInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(reviewerId);
+        return next;
+      });
+    }
+  }, [user, id, myLikes, likeCounts, likingInProgress]);
 
   const sortedReviews = useMemo(() => {
     const reviews = [...subscriberReviews];
@@ -254,7 +334,9 @@ const SongDetail = () => {
             <div className="space-y-2">
               {pagedReviews.map((review, i) => {
                 const rating = parseFloat(review.평점) || 0;
-                const likes = parseInt(review.좋아요) || 0;
+                const likes = likeCounts[review.작성자ID] ?? (parseInt(review.좋아요) || 0);
+                const isLiked = myLikes.has(review.작성자ID);
+                const isOwnReview = user?.id === review.작성자ID;
                 return (
                   <div key={`${review.작성자ID}-${i}`} className="flex items-start gap-3 rounded-lg border border-border bg-background/50 p-3">
                     <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -270,10 +352,21 @@ const SongDetail = () => {
                       )}
                       <div className="flex items-center justify-between mt-1.5">
                         <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Heart className="h-3 w-3" />
+                        <button
+                          onClick={() => !isOwnReview && user && toggleLike(review.작성자ID)}
+                          disabled={isOwnReview || !user || likingInProgress.has(review.작성자ID)}
+                          className={cn(
+                            "flex items-center gap-1 transition-colors",
+                            isOwnReview || !user
+                              ? "text-muted-foreground/40 cursor-default"
+                              : isLiked
+                                ? "text-red-500 hover:text-red-400"
+                                : "text-muted-foreground hover:text-red-400"
+                          )}
+                        >
+                          <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
                           <span className="text-xs">{likes}</span>
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>

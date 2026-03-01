@@ -309,6 +309,32 @@ Deno.serve(async (req) => {
         );
       }
 
+      // 좋아요 토글 (Google Sheets 좋아요 카운트 동기화)
+      if (body.action === 'toggle-like') {
+        const songId = body.songId as string;
+        const reviewerId = body.reviewerId as string;
+        const newCount = body.newCount as number;
+        // Google Sheets에서 해당 리뷰 행을 찾아 좋아요 수 업데이트
+        const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(`UserReview!A1:I10000`)}`;
+        const rawRes = await fetch(sheetsUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const rawData = await rawRes.json();
+        const allRows: string[][] = rawData.values || [];
+        let targetRowIndex = -1;
+        for (let i = 1; i < allRows.length; i++) {
+          if (allRows[i][4] === songId && allRows[i][2] === reviewerId) {
+            targetRowIndex = i + 1;
+            break;
+          }
+        }
+        if (targetRowIndex !== -1) {
+          await writeSheet(accessToken, `UserReview!H${targetRowIndex}`, [[String(newCount)]]);
+        }
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // 특정 곡의 리뷰 조회
       if (body.action === 'fetch-song-reviews') {
         const songId = body.songId as string;
