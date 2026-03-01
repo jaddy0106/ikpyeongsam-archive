@@ -26,7 +26,7 @@ const Index = () => {
         });
         if (error) throw error;
         if (data?.success && data.videos) {
-          setVideos(data.videos.slice(0, 3));
+          setVideos(data.videos.slice(0, 4));
         }
       } catch (err) {
         console.error("Failed to fetch YouTube videos:", err);
@@ -67,7 +67,7 @@ const Index = () => {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {videos.map((video) => (
               <a
                 key={video.id}
