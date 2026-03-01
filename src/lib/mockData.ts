@@ -24,6 +24,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
     createdAt: "2024-06-01",
     isOfficial: true,
+    subscriberRating: 4.1,
   },
   {
     id: "2",
@@ -42,6 +43,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300&h=300&fit=crop",
     createdAt: "2024-05-15",
     isOfficial: true,
+    subscriberRating: 4.2,
   },
   {
     id: "3",
@@ -60,6 +62,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop",
     createdAt: "2024-04-28",
     isOfficial: true,
+    subscriberRating: 3.5,
   },
   {
     id: "4",
@@ -78,6 +81,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop",
     createdAt: "2024-04-10",
     isOfficial: true,
+    subscriberRating: 4.5,
   },
   {
     id: "5",
@@ -96,6 +100,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop",
     createdAt: "2024-03-25",
     isOfficial: true,
+    subscriberRating: 3.8,
   },
   {
     id: "6",
@@ -114,6 +119,7 @@ export const mockSongs: Song[] = [
     coverUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300&h=300&fit=crop",
     createdAt: "2024-03-10",
     isOfficial: true,
+    subscriberRating: 4.7,
   },
 ];
 
