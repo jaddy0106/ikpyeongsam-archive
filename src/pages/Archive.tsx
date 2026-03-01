@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SongCard from "@/components/SongCard";
 import { useGoogleSheets, useAliasRules } from "@/hooks/useGoogleSheets";
-import { getSearchTermsFromRules } from "@/lib/artistAliases";
+import { getSearchTermsFromRules, getSearchPriority } from "@/lib/artistAliases";
 
 type ViewMode = "grid" | "list";
 type SortBy = "rating-desc" | "rating-asc" | "date-desc" | "date-asc";
@@ -21,24 +21,33 @@ const Archive = () => {
     let result = [...songs];
 
     if (search.trim()) {
-      const terms = getSearchTermsFromRules(search.toLowerCase(), aliasRules);
-      result = result.filter((s) => {
-        const title = s.title.toLowerCase();
-        const artist = s.artist.toLowerCase();
-        const genre = s.genre?.toLowerCase() || "";
-        return terms.some((t) => title.includes(t) || artist.includes(t) || genre.includes(t));
-      });
+      const q = search.toLowerCase();
+      const terms = getSearchTermsFromRules(q, aliasRules);
+      result = result
+        .filter((s) => {
+          const title = s.title.toLowerCase();
+          const artist = s.artist.toLowerCase();
+          const genre = s.genre?.toLowerCase() || "";
+          return terms.some((t) => title.includes(t) || artist.includes(t) || genre.includes(t));
+        })
+        .map((s) => ({
+          ...s,
+          _priority: getSearchPriority(s.title, s.artist, q, terms),
+        }))
+        .sort((a, b) => a._priority - b._priority);
     }
 
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "rating-desc": return b.rating - a.rating;
-        case "rating-asc": return a.rating - b.rating;
-        case "date-desc": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "date-asc": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        default: return 0;
-      }
-    });
+    if (!search.trim()) {
+      result.sort((a, b) => {
+        switch (sortBy) {
+          case "rating-desc": return b.rating - a.rating;
+          case "rating-asc": return a.rating - b.rating;
+          case "date-desc": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case "date-asc": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          default: return 0;
+        }
+      });
+    }
 
     return result;
   }, [songs, search, sortBy, aliasRules]);
