@@ -16,6 +16,11 @@ const getRatingColor = (rating: number) => {
 };
 
 const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
+  // 익평삼 평점: memberRatings 평균 (SongDetail과 동일 로직)
+  const officialRating = song.memberRatings && song.memberRatings.length > 0
+    ? song.memberRatings.reduce((sum, r) => sum + r.rating, 0) / song.memberRatings.length
+    : song.rating;
+
   if (variant === "list") {
     return (
       <Link to={`/song/${song.id}`}>
@@ -36,7 +41,7 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
           {song.isOfficial && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <Star className="h-3 w-3 text-primary fill-primary" />
-              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(song.rating))}>{song.rating.toFixed(1)}</span>
+              <span className={cn("text-xs font-bold tabular-nums", getRatingColor(officialRating))}>{officialRating.toFixed(1)}</span>
             </div>
           )}
           {song.subscriberRating != null && (
@@ -49,11 +54,6 @@ const SongCard = ({ song, variant = "grid" }: SongCardProps) => {
       </Link>
     );
   }
-
-  // 익평삼 평점: memberRatings 평균 (SongDetail과 동일 로직)
-  const officialRating = song.memberRatings && song.memberRatings.length > 0
-    ? song.memberRatings.reduce((sum, r) => sum + r.rating, 0) / song.memberRatings.length
-    : song.rating;
 
   return (
     <Link to={`/song/${song.id}`}>

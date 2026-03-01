@@ -34,8 +34,9 @@ const SongDetail = () => {
   { id: "sr2", user: "멜로디러버", rating: 3.8, text: "프로듀싱이 인상적입니다" },
   { id: "sr3", user: "사운드헌터", rating: 4.5, text: "올해 최고의 곡 중 하나" }];
 
-
-  const avgSubscriberRating = subscriberReviews.reduce((sum, r) => sum + r.rating, 0) / subscriberReviews.length;
+  // 구독자 평균: song에 저장된 값 우선 사용 (카드와 일치)
+  const avgSubscriberRating = song.subscriberRating ?? 
+    subscriberReviews.reduce((sum, r) => sum + r.rating, 0) / subscriberReviews.length;
 
   // 익평삼 평균 = 개별 멤버 평점의 평균
   const avgMemberRating = song.memberRatings ?
