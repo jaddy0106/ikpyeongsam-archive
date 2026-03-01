@@ -181,7 +181,7 @@ const AddReview = () => {
             "", // ISRC
             "", // cover
             "", // ytUrl
-            itunes.genre || "", // ABC
+            "C", // ABC - 신규 추가 곡은 C
             "", "", "", "", // rates & avg
             "", "", "", // comments
             "", // IPyoutube
