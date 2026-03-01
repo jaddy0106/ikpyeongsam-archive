@@ -81,6 +81,21 @@ async function fetchSheet(accessToken: string, range: string) {
   return { headers, records };
 }
 
+async function writeSheet(accessToken: string, range: string, values: string[][]) {
+  const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  const res = await fetch(sheetsUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(JSON.stringify(data.error));
+  return data;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -97,12 +112,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Client email:', clientEmail);
-    console.log('Private key length:', privateKey.length);
-
     const accessToken = await getAccessToken(clientEmail, privateKey);
 
-    // Fetch both SONGS and Rules tabs in parallel
+    // POST: write data to a sheet
+    if (req.method === 'POST') {
+      const body = await req.json();
+      if (body.action === 'write-rules') {
+        const result = await writeSheet(accessToken, body.range, body.values);
+        return new Response(
+          JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // GET: fetch data
     const [songsData, rulesData] = await Promise.all([
       fetchSheet(accessToken, `${SHEET_NAME}!A1:V10000`),
       fetchSheet(accessToken, `Rules!A1:B1000`).catch(() => ({ headers: [], records: [] })),
