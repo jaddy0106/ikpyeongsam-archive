@@ -128,39 +128,39 @@ const Index = () => {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="relative flex items-center gap-2">
-            {/* Left Arrow */}
-            <button
-              onClick={() => goToPage("left")}
-              disabled={currentPage === 0}
-              className="flex-shrink-0 p-2 rounded-full border border-border bg-card text-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-
+          <div className="relative">
             {/* Cards */}
-            <div className="flex-1 overflow-hidden">
-              <div
-                className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 transition-all duration-300 ease-in-out ${
-                  sliding === "right" ? "opacity-0 -translate-x-4" :
-                  sliding === "left" ? "opacity-0 translate-x-4" :
-                  "opacity-100 translate-x-0"
-                }`}
-              >
-                {pageSongs.map((song) => (
-                  <SongCard key={song.id} song={song} />
-                ))}
-              </div>
+            <div
+              className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 transition-all duration-300 ease-in-out ${
+                sliding === "right" ? "opacity-0 -translate-x-4" :
+                sliding === "left" ? "opacity-0 translate-x-4" :
+                "opacity-100 translate-x-0"
+              }`}
+            >
+              {pageSongs.map((song) => (
+                <SongCard key={song.id} song={song} />
+              ))}
             </div>
 
-            {/* Right Arrow */}
-            <button
-              onClick={() => goToPage("right")}
-              disabled={currentPage >= totalPages - 1}
-              className="flex-shrink-0 p-2 rounded-full border border-border bg-card text-foreground disabled:opacity-30 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+            {/* Left Arrow Overlay */}
+            {currentPage > 0 && (
+              <button
+                onClick={() => goToPage("left")}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border text-foreground hover:bg-secondary transition-colors shadow-md"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+
+            {/* Right Arrow Overlay */}
+            {currentPage < totalPages - 1 && (
+              <button
+                onClick={() => goToPage("right")}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border text-foreground hover:bg-secondary transition-colors shadow-md"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
           </div>
         )}
 
