@@ -96,6 +96,21 @@ async function writeSheet(accessToken: string, range: string, values: string[][]
   return data;
 }
 
+async function appendSheet(accessToken: string, range: string, values: string[][]) {
+  const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+  const res = await fetch(sheetsUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(JSON.stringify(data.error));
+  return data;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -121,8 +136,17 @@ Deno.serve(async (req) => {
         const text = await req.text();
         if (text) body = JSON.parse(text);
       } catch { /* empty body = read request */ }
+
       if (body.action === 'write-rules') {
-        const result = await writeSheet(accessToken, body.range, body.values);
+        const result = await writeSheet(accessToken, body.range as string, body.values as string[][]);
+        return new Response(
+          JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (body.action === 'append-song') {
+        const result = await appendSheet(accessToken, `${SHEET_NAME}!A:V`, body.values as string[][]);
         return new Response(
           JSON.stringify({ success: true, result }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
