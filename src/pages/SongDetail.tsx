@@ -1,7 +1,16 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Star, Music, User } from "lucide-react";
-import { mockSongs, mockUserReviews } from "@/lib/mockData";
+import { ArrowLeft, Star, Music, User, Users } from "lucide-react";
+import { mockSongs, mockUserReviews, memberInfo } from "@/lib/mockData";
 import RatingBadge from "@/components/RatingBadge";
+import member1Img from "@/assets/member-1.png";
+import member2Img from "@/assets/member-2.png";
+import member3Img from "@/assets/member-3.png";
+
+const memberAvatars: Record<string, string> = {
+  "1": member1Img,
+  "2": member2Img,
+  "3": member3Img,
+};
 
 const SongDetail = () => {
   const { id } = useParams();
@@ -19,7 +28,7 @@ const SongDetail = () => {
     );
   }
 
-  // Mock subscriber reviews for this song
+  // Mock subscriber reviews
   const subscriberReviews = [
     { id: "sr1", user: "음악팬123", rating: 4.0, text: "정말 좋은 곡이에요! 반복 재생 중" },
     { id: "sr2", user: "멜로디러버", rating: 3.8, text: "프로듀싱이 인상적입니다" },
@@ -27,6 +36,11 @@ const SongDetail = () => {
   ];
 
   const avgSubscriberRating = subscriberReviews.reduce((sum, r) => sum + r.rating, 0) / subscriberReviews.length;
+
+  // 익평삼 평균 = 개별 멤버 평점의 평균
+  const avgMemberRating = song.memberRatings
+    ? song.memberRatings.reduce((sum, r) => sum + r.rating, 0) / song.memberRatings.length
+    : song.rating;
 
   return (
     <div className="container max-w-2xl py-8">
@@ -58,35 +72,54 @@ const SongDetail = () => {
         </div>
       </div>
 
-      {/* Ratings Section */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Star className="h-4 w-4 text-primary fill-primary" />
-            <span className="text-sm font-medium text-foreground">익평삼 평점</span>
-          </div>
-          <RatingBadge rating={song.rating} size="lg" />
-          {song.reviewText && (
-            <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{song.reviewText}</p>
-          )}
+      {/* 익평삼 평점 섹션 */}
+      <div className="rounded-lg border border-border bg-card p-5 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Star className="h-4 w-4 text-primary fill-primary" />
+          <span className="text-sm font-bold text-foreground">익평삼 평점</span>
+          <RatingBadge rating={avgMemberRating} size="lg" />
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">구독자 평점</span>
+        {song.reviewText && (
+          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{song.reviewText}</p>
+        )}
+
+        {/* 개별 출연자 평점 */}
+        {song.memberRatings && (
+          <div className="space-y-3 border-t border-border pt-4">
+            <span className="text-xs text-muted-foreground font-medium">개별 평점</span>
+            {song.memberRatings.map((mr) => (
+              <div key={mr.memberId} className="flex items-center gap-3">
+                <img
+                  src={memberAvatars[mr.memberId]}
+                  alt={memberInfo[mr.memberId as keyof typeof memberInfo].name}
+                  className="h-8 w-8 rounded-full object-cover bg-secondary"
+                />
+                <span className="text-sm font-medium text-foreground w-6">
+                  {memberInfo[mr.memberId as keyof typeof memberInfo].name}
+                </span>
+                <RatingBadge rating={mr.rating} size="sm" />
+                {mr.comment && (
+                  <span className="text-sm text-muted-foreground truncate">{mr.comment}</span>
+                )}
+              </div>
+            ))}
           </div>
-          <RatingBadge rating={avgSubscriberRating} size="lg" />
-          <p className="text-xs text-muted-foreground mt-3">{subscriberReviews.length}명 참여</p>
-        </div>
+        )}
       </div>
 
-      {/* Subscriber Reviews */}
-      <div>
-        <h2 className="text-base font-bold text-foreground mb-4">구독자 한줄평</h2>
+      {/* 구독자 평점 & 한줄평 통합 */}
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-bold text-foreground">구독자 평점</span>
+          <RatingBadge rating={avgSubscriberRating} size="lg" />
+          <span className="text-xs text-muted-foreground ml-auto">{subscriberReviews.length}명 참여</span>
+        </div>
+
         <div className="space-y-2">
           {subscriberReviews.map((review) => (
-            <div key={review.id} className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
+            <div key={review.id} className="flex items-start gap-3 rounded-lg border border-border bg-background/50 p-3">
               <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
                 <User className="h-4 w-4 text-muted-foreground" />
               </div>

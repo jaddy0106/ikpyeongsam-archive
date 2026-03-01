@@ -1,5 +1,11 @@
 import { Song } from "./types";
 
+export const memberInfo = {
+  "1": { name: "1", avatar: "/assets/member-1.png" },
+  "2": { name: "2", avatar: "/assets/member-2.png" },
+  "3": { name: "3", avatar: "/assets/member-3.png" },
+};
+
 export const mockSongs: Song[] = [
   {
     id: "1",
@@ -7,6 +13,11 @@ export const mockSongs: Song[] = [
     artist: "aespa",
     album: "Armageddon",
     rating: 3.8,
+    memberRatings: [
+      { memberId: "1", rating: 4.0, comment: "중독성 있는 멜로디가 인상적" },
+      { memberId: "2", rating: 3.5, comment: "실험적이지만 호불호 갈릴 듯" },
+      { memberId: "3", rating: 4.0, comment: "aespa만의 색깔이 뚜렷하다" },
+    ],
     reviewer: "익평삼",
     reviewText: "중독성 있는 멜로디와 실험적인 사운드가 잘 어우러진 곡. aespa만의 색깔이 뚜렷하다.",
     genre: "K-Pop",
@@ -20,6 +31,11 @@ export const mockSongs: Song[] = [
     artist: "IU",
     album: "The Winning",
     rating: 4.0,
+    memberRatings: [
+      { memberId: "1", rating: 4.5, comment: "IU 보컬의 진가를 보여준 곡" },
+      { memberId: "2", rating: 3.5, comment: "깔끔하지만 임팩트가 아쉽다" },
+      { memberId: "3", rating: 4.0, comment: "감성적인 가사가 좋다" },
+    ],
     reviewer: "익평삼",
     reviewText: "IU의 보컬이 돋보이는 곡. 감성적인 가사와 깔끔한 프로듀싱이 인상적이다.",
     genre: "K-Pop / Ballad",
@@ -33,6 +49,11 @@ export const mockSongs: Song[] = [
     artist: "ZICO (feat. JENNIE)",
     album: "Single",
     rating: 3.3,
+    memberRatings: [
+      { memberId: "1", rating: 3.5, comment: "재치 있는 가사가 포인트" },
+      { memberId: "2", rating: 3.0, comment: "대중적이지만 깊이가 아쉽다" },
+      { memberId: "3", rating: 3.5, comment: "가볍게 듣기 좋은 곡" },
+    ],
     reviewer: "익평삼",
     reviewText: "대중적인 어필은 확실하지만 음악적 깊이는 아쉬운 편. 재치 있는 가사가 포인트.",
     genre: "K-Pop / Hip-Hop",
@@ -46,6 +67,11 @@ export const mockSongs: Song[] = [
     artist: "DAY6",
     album: "Fourever",
     rating: 4.5,
+    memberRatings: [
+      { memberId: "1", rating: 5.0, comment: "라이브로 들으면 소름 돋는 명곡" },
+      { memberId: "2", rating: 4.0, comment: "밴드 사운드의 정수" },
+      { memberId: "3", rating: 4.5, comment: "DAY6의 절정기를 보여준 곡" },
+    ],
     reviewer: "익평삼",
     reviewText: "DAY6의 밴드 사운드가 절정에 달한 곡. 라이브로 들으면 소름이 돋을 명곡.",
     genre: "K-Rock / Band",
@@ -59,6 +85,11 @@ export const mockSongs: Song[] = [
     artist: "ILLIT",
     album: "SUPER REAL ME",
     rating: 3.5,
+    memberRatings: [
+      { memberId: "1", rating: 3.5, comment: "신인답지 않은 완성도" },
+      { memberId: "2", rating: 3.0, comment: "하이브 프로듀싱이 느껴진다" },
+      { memberId: "3", rating: 4.0, comment: "중독성 있는 곡" },
+    ],
     reviewer: "익평삼",
     reviewText: "신인답지 않은 완성도. 하이브의 프로듀싱 파워가 느껴지는 곡.",
     genre: "K-Pop",
@@ -72,6 +103,11 @@ export const mockSongs: Song[] = [
     artist: "NewJeans",
     album: "OMG",
     rating: 4.8,
+    memberRatings: [
+      { memberId: "1", rating: 5.0, comment: "완벽에 가까운 팝 송" },
+      { memberId: "2", rating: 4.5, comment: "K-Pop의 흐름을 바꾼 곡" },
+      { memberId: "3", rating: 5.0, comment: "올해의 곡이라 할 만하다" },
+    ],
     reviewer: "익평삼",
     reviewText: "2020년대 K-Pop의 흐름을 바꾼 곡이라 해도 과언이 아니다. 완벽에 가까운 팝 송.",
     genre: "K-Pop",
