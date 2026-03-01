@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       }
 
       if (body.action === 'setup-reviews-sheet') {
-        const sheetName = '연동용';
+        const sheetName = 'UserReview';
         await createSheet(accessToken, sheetName);
         const headers = ['작성일시', '작성자', '작성자ID', '곡정보', '곡ID', '평점', '한줄평'];
         const dummy: string[][] = [headers];
@@ -221,7 +221,66 @@ Deno.serve(async (req) => {
         }
         await writeSheet(accessToken, `${sheetName}!A1:G11`, dummy);
         return new Response(
-          JSON.stringify({ success: true, message: `'${sheetName}' 시트 생성 완료 (헤더 + 10개 더미데이터)` }),
+          JSON.stringify({ success: true, message: `'${sheetName}' 시트 생성 완료` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 리뷰 저장 (UserReview 시트에 append)
+      if (body.action === 'append-review') {
+        const result = await appendSheet(accessToken, `UserReview!A:G`, body.values as string[][]);
+        return new Response(
+          JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 특정 사용자의 리뷰 조회
+      if (body.action === 'fetch-user-reviews') {
+        const userId = body.userId as string;
+        const { records } = await fetchSheet(accessToken, `UserReview!A1:G10000`);
+        const userReviews = records.filter((r: Record<string, string>) => r['작성자ID'] === userId);
+        return new Response(
+          JSON.stringify({ success: true, reviews: userReviews }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 사용자 정보를 Users 시트에 동기화
+      if (body.action === 'sync-user') {
+        const { userId, displayName, email, avatarUrl } = body as Record<string, string>;
+        const usersSheet = 'Users';
+        // Users 시트가 없으면 생성
+        await createSheet(accessToken, usersSheet);
+        
+        // 기존 데이터 확인
+        let existingRecords: Record<string, string>[] = [];
+        try {
+          const result = await fetchSheet(accessToken, `${usersSheet}!A1:E10000`);
+          existingRecords = result.records;
+        } catch {
+          // 시트가 비어있으면 헤더 생성
+          await writeSheet(accessToken, `${usersSheet}!A1:E1`, [['userId', 'displayName', 'email', 'avatarUrl', 'lastLogin']]);
+        }
+
+        const now = new Date().toISOString();
+        const existingIdx = existingRecords.findIndex((r) => r['userId'] === userId);
+        
+        if (existingIdx >= 0) {
+          // 기존 사용자 업데이트
+          const rowNum = existingIdx + 2;
+          await writeSheet(accessToken, `${usersSheet}!A${rowNum}:E${rowNum}`, [
+            [userId, displayName || '', email || '', avatarUrl || '', now],
+          ]);
+        } else {
+          // 새 사용자 추가
+          await appendSheet(accessToken, `${usersSheet}!A:E`, [
+            [userId, displayName || '', email || '', avatarUrl || '', now],
+          ]);
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
