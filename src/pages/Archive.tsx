@@ -41,7 +41,7 @@ const Archive = () => {
     });
 
     return result;
-  }, [songs, search, sortBy]);
+  }, [songs, search, sortBy, aliasRules]);
 
   return (
     <div className="container py-8">
