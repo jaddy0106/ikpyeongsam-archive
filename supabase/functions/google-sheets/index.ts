@@ -129,6 +129,27 @@ async function appendSheet(accessToken: string, range: string, values: string[][
   return data;
 }
 
+async function createSheet(accessToken: string, title: string) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{ addSheet: { properties: { title } } }],
+    }),
+  });
+  const data = await res.json();
+  // 이미 존재하는 시트면 무시
+  if (data.error?.status === 'INVALID_ARGUMENT' && data.error?.message?.includes('already exists')) {
+    return { alreadyExists: true };
+  }
+  if (data.error) throw new Error(JSON.stringify(data.error));
+  return data;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -167,6 +188,40 @@ Deno.serve(async (req) => {
         const result = await appendSheet(accessToken, `${SHEET_NAME}!A:W`, body.values as string[][]);
         return new Response(
           JSON.stringify({ success: true, result }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (body.action === 'setup-reviews-sheet') {
+        const sheetName = '연동용';
+        await createSheet(accessToken, sheetName);
+        const headers = ['작성일시', '작성자', '작성자ID', '곡정보', '곡ID', '평점', '한줄평'];
+        const dummy: string[][] = [headers];
+        const names = ['음악팬1', '멜로디러버', '비트마스터', '힙합키드', '발라드퀸', '록스타', '인디보이', '팝매니아', '재즈걸', 'EDM중독'];
+        const songs = [
+          ['아이브 - Love Dive', 'love-dive-ive'],
+          ['뉴진스 - Hype Boy', 'hype-boy-newjeans'],
+          ['르세라핌 - ANTIFRAGILE', 'antifragile-lesserafim'],
+          ['(여자)아이들 - Queencard', 'queencard-gidle'],
+          ['에스파 - Supernova', 'supernova-aespa'],
+          ['BTS - Dynamite', 'dynamite-bts'],
+          ['BLACKPINK - Pink Venom', 'pink-venom-blackpink'],
+          ['임영웅 - 사랑은 늘 도망가', 'love-always-runs-lim'],
+          ['아이유 - Blueming', 'blueming-iu'],
+          ['세븐틴 - Super', 'super-seventeen'],
+        ];
+        const ratings = ['4.5', '3.0', '5.0', '4.0', '3.5', '4.5', '2.5', '5.0', '4.0', '3.5'];
+        const comments = [
+          '중독성 최고!', '비트가 좋아요', '올해 최고의 곡', '안무가 인상적', '계속 듣게 됨',
+          '전설적인 곡', '카리스마 넘침', '감동적인 가사', '분위기가 너무 좋아', '에너지 넘치는 곡',
+        ];
+        for (let i = 0; i < 10; i++) {
+          const date = `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')} ${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`;
+          dummy.push([date, names[i], `user_${String(i + 1).padStart(3, '0')}`, songs[i][0], songs[i][1], ratings[i], comments[i]]);
+        }
+        await writeSheet(accessToken, `${sheetName}!A1:G11`, dummy);
+        return new Response(
+          JSON.stringify({ success: true, message: `'${sheetName}' 시트 생성 완료 (헤더 + 10개 더미데이터)` }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
