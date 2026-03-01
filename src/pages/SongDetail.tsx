@@ -343,30 +343,32 @@ const SongDetail = () => {
                       <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">{review.작성자}</span>
-                        <RatingBadge rating={rating} size="sm" />
-                      </div>
-                      {review.한줄평 && (
-                        <p className="text-sm text-muted-foreground mt-1">{review.한줄평}</p>
-                      )}
-                      <div className="flex items-center justify-between mt-1.5">
-                        <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{review.작성자}</span>
+                          <RatingBadge rating={rating} size="sm" />
+                        </div>
                         <button
                           onClick={() => user && toggleLike(review.작성자ID)}
-                           disabled={!user || likingInProgress.has(review.작성자ID)}
-                           className={cn(
-                             "flex items-center gap-1 transition-colors",
-                             !user
-                               ? "text-muted-foreground/40 cursor-default"
-                               : isLiked
+                          disabled={!user || likingInProgress.has(review.작성자ID)}
+                          className={cn(
+                            "flex items-center gap-1 transition-colors select-none",
+                            !user
+                              ? "text-muted-foreground/40 cursor-default"
+                              : isLiked
                                 ? "text-red-500 hover:text-red-400"
                                 : "text-muted-foreground hover:text-red-400"
                           )}
                         >
-                          <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
-                          <span className="text-xs">{likes}</span>
+                          <Heart className={cn("h-5 w-5", isLiked && "fill-current")} />
+                          <span className="text-sm">{likes}</span>
                         </button>
+                      </div>
+                      {review.한줄평 && (
+                        <p className="text-sm text-muted-foreground mt-1">{review.한줄평}</p>
+                      )}
+                      <div className="mt-1.5">
+                        <span className="text-xs text-muted-foreground/60">{review.작성일시}</span>
                       </div>
                     </div>
                   </div>
